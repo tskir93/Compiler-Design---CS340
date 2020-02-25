@@ -18,6 +18,7 @@ struct alpha_token_t *temp = NULL;
 int count;
 int comstart=0;
 char *lines ;
+int nested = 0;
 
 struct alpha_token_t CreateToken(int numline,int numToken,char *content,char *type){
 	struct alpha_token_t *new_token=(struct alpha_token_t *)malloc(sizeof(struct alpha_token_t));
@@ -174,7 +175,11 @@ COMMENT		"//".*
 
 "/*"		{comstart=yylineno;BEGIN(MULT_COM);} 
 <MULT_COM>\n             {yylineno;}
-<MULT_COM>"*"+"/"        {char str[100];sprintf(str,"%d - %d", comstart,yylineno);
+<MULT_COM>"/*"			{nested++;char str1[100];sprintf(str1,"%d", yylineno);		/*an einai mono se mia grammi tote tipwse ton arithmo tis grammis*/	
+								CreateToken(yylineno,IncreaseCounter(),str1,"NESTED_COMMENT");	}
+<MULT_COM>"*"+"/"        {if (nested!=0){nested--;break;}
+								char str[100];
+								sprintf(str,"%d - %d", comstart,yylineno);
 								if(comstart == yylineno){sprintf(str,"%d", comstart);}		/*an einai mono se mia grammi tote tipwse ton arithmo tis grammis*/	
 								CreateToken(yylineno,IncreaseCounter(),str,"MULTY_LINE_COMMENT");BEGIN(INITIAL);}
 <MULT_COM>.				{}						/*otidipote allo kai na vrei den kanei tipota aplos to agnoei*/
@@ -195,8 +200,12 @@ int main(int argc, char** argv)
     yyin=stdin;
     	
 	while(1){
-        alpha_yylex(head);
-    	PrintTokens();
+		
+        	alpha_yylex(head);
+        	if(getchar()==EOF){
+    			PrintTokens();
+    			return 1;
+    		}
     }
     
     return 0;
