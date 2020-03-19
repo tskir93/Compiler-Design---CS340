@@ -133,7 +133,20 @@ primary			:	lvalue						{printf("primary -> lvalue \n");}
 
 
 lvalue			:	ID 							{printf("lvalue -> ID \n");}
-				|	LOCAL ID 					{printf("lvalue ->  LOCAL ID\n");}
+				|	LOCAL ID 					{ 
+												if(lookup_scope($2) == 0){
+													 if(check_lib_func($2)==0){	
+													 	if(scope == 0){
+															insert_variable(Symtbl,$2,0,yylineno,GLOBAL);
+														}else{
+															insert_variable(Symtbl,$2,0,yylineno,LOCALE);
+														}
+													 }
+												}else{
+													$$ = $2;
+												}	 
+ 												printf("lvalue ->  LOCAL ID\n");}
+
 				|	DOUBLE_COL ID 				{printf("lvalue ->  ::ID\n");}
 				|	member 						{printf("lvalue ->  member\n");}
 				;
@@ -183,7 +196,7 @@ indexed			:	indexedelem							{printf("indexed -> indexedelem\n");}
 indexedelem 	:	LEFT_BR expr COLON expr RIGHT_BR 	{printf("indexedelem -> {expr : expr}\n");}
 				;
 
-block			:	LEFT_BR stmt RIGHT_BR 				{printf("block -> { stmt }\n");}	
+block			:	LEFT_BR{++scope;} stmt RIGHT_BR{--scope;} 				{printf("block -> { stmt }\n");}	
 				;
 
 funcdef			:	FUNCTION ID LEFT_PAR idlist RIGHT_PAR block  			{printf("funcdef -> function ID ( idlist ) block \n");}
@@ -243,14 +256,26 @@ int yyerror(char* yaccProvidedMessage){
 
 
 int main(int argc, char **argv) {
+
 		yyin = stdin;
 
 		
 		Symtbl = new_Symtable();
+		
+		insert_function(Symtbl,"testfunc0",1,0,LIBFUNC);
+		insert_function(Symtbl,"testfunc1",2,0,LIBFUNC);
+		insert_function(Symtbl,"testfunc2",1,0,LIBFUNC);
+		insert_function(Symtbl,"testfunc3",3,0,LIBFUNC);
+		insert_function(Symtbl,"testfunv4",2,0,LIBFUNC);
+		//printSymtable();
+		
 
-		printSymtable();
+		printSymtable_hide();
+		hide(1);
+		printSymtable_hide();
 		yyparse();
 
+		
 		
 		return 0;
 }

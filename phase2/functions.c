@@ -1,10 +1,11 @@
 #include "functions.h"
 
 SymTable *head; 
+int i=0;
 
 /*synartisi gia eisagwgi enos variable sto symtable*/
 void insert_variable(SymTable *sym,const char *name,unsigned int scope, unsigned int line, enum SymbolType type){
-
+	int temp_scope;
 	SymbolTableEntry *new = (SymbolTableEntry *)malloc(sizeof(SymbolTableEntry));
 	Variable *new_var = (Variable *)malloc(sizeof(Variable));
 	new->value.varVal = (Variable *)malloc(sizeof(Variable));
@@ -17,24 +18,26 @@ void insert_variable(SymTable *sym,const char *name,unsigned int scope, unsigned
 	
 
 	/*vazoyme ston symtable to variable p ftiaksame*/
-	new->isActive = 0;
+	new->isActive = 1;
 	new->value.varVal =(Variable *) new_var;
 
 	if(temp == NULL){
 		head->entry = new;
 		//temp = new;
 	}else{
+		temp_scope=new_var->scope;
 		temp = sym->entry;
-		while(temp->next!=NULL){
+		while(temp->next!=NULL && temp->next->value.varVal->scope<temp_scope){
 			temp = temp->next;
 		}
-		temp->next = new;
+		new->next=temp->next;
+		temp->next=new;
 	}
 }
 
 /*sunartisi gia eisagwgi enos function sto symtable*/
 void insert_function(SymTable *sym,const char *name,unsigned int scope, unsigned int line, enum SymbolType type){
-
+	int temp_scope;
 	/*desmevoyme xwro gia ena kainourgio node sto symtable*/
 	SymbolTableEntry *new = (SymbolTableEntry *)malloc(sizeof(SymbolTableEntry));
 	Function *new_func = (Function *)malloc(sizeof(Function));
@@ -42,13 +45,11 @@ void insert_function(SymTable *sym,const char *name,unsigned int scope, unsigned
 	
 	SymbolTableEntry *temp = sym->entry;
 
-	printf("mpainei 1\n");
 	new_func -> name = name;
 	new_func -> scope = scope;
 	new_func -> line = line;
-	printf("mpainei 2\n");
 
-	new->isActive = 0;
+	new->isActive = 1;
 	new->value.funcVal = (Function *) new_func;
 	new->type = type;
 	new->next = NULL;
@@ -56,17 +57,20 @@ void insert_function(SymTable *sym,const char *name,unsigned int scope, unsigned
 	if(temp == NULL){
 		head->entry = new;
 		//temp = new;
-		printf("mpaieni edw prepei na mpainei mono tin prwti fora\n");
+
 	}else{
+		temp_scope=new_func->scope;
 		temp = sym->entry;
-		while(temp->next!=NULL){
+		
+		while(temp->next!=NULL && temp->next->value.funcVal->scope<temp_scope){
 			temp = temp->next;
 		}
-		temp->next = new;
-		temp = temp->next;
+		new->next=temp->next;
+		temp->next=new;
 	}
 
 }
+
 
 
 /*synartisi poy elegxei an auto poy diavase einai variable i function*/
@@ -121,7 +125,7 @@ void printSymtable(){
 
 	printf("-----------------------------------------*****************Symtable output*****************-----------------------------------------\n\n\n");
 	
-	while (ent->next!=NULL){
+	while (ent!=NULL){
 		if(check_type_for_print(ent->type)==0){
 			
 			printf("\"%s\"",ent->value.varVal->name);
@@ -137,7 +141,6 @@ void printSymtable(){
 			printf("( scope %d )\n",ent->value.varVal->scope);
 
 		}else if(check_type_for_print(ent->type)==1){
-			
 			printf("\"%s\"\t\t",ent->value.funcVal->name);
 			if(strlen(ent->value.varVal->name)<6){
 				printf("\t\t\t");
@@ -152,8 +155,11 @@ void printSymtable(){
 			printf("( scope %d )\n",ent->value.funcVal->scope);
 
 		}
-
-		ent = ent->next;
+		if(ent->next!=NULL){
+			ent = ent->next;
+		}else{
+			break;
+		}
 	}
 }
 
@@ -168,4 +174,105 @@ const char* gettype_to_String(enum SymbolType type)
       case USERFUNC: return "USERFUNC";
       case LIBFUNC: return "LIBFUNC";
    }
+}
+
+void hide(int scope){
+	SymbolTableEntry *ent = head -> entry;
+	
+	while(ent!=NULL){
+		if(check_type_for_print(ent->type)==0){
+			if(ent->value.varVal->scope == scope){
+				ent->isActive = 0;
+			}
+		}else if(check_type_for_print(ent->type)==1){
+			if(ent->value.funcVal->scope == scope){
+				ent->isActive = 0;
+			}
+		}
+		if(ent->next!=NULL){
+			ent = ent->next;
+		}else{
+			break;
+		}
+	}
+
+}
+
+
+
+void printSymtable_hide(){
+	SymbolTableEntry *ent = head->entry;
+
+	printf("-----------------------------------------*****************Symtable output*****************-----------------------------------------\n\n\n");
+	
+	while (ent!=NULL){
+		if(check_type_for_print(ent->type)==0){
+			if(ent->isActive == 1){
+				printf("\"%s\"",ent->value.varVal->name);
+				if(strlen(ent->value.varVal->name)<6){
+					printf("\t\t\t");
+				}else if(strlen(ent->value.varVal->name)>=6 && strlen(ent->value.varVal->name)<12){
+					printf("\t\t");	
+				}else{
+					printf("\t");
+				}
+				printf("[ %s ]\t",gettype_to_String(ent->type));
+				printf("( line %d )\t",ent->value.varVal->line);
+				printf("( scope %d )\n",ent->value.varVal->scope);
+			}
+		}else if(check_type_for_print(ent->type)==1){
+			if(ent->isActive ==1){
+				printf("\"%s\"\t\t",ent->value.funcVal->name);
+				if(strlen(ent->value.varVal->name)<6){
+					printf("\t\t\t");
+				}else if(strlen(ent->value.varVal->name)>=6 && strlen(ent->value.varVal->name)<12){
+					printf("\t\t");	
+				}else{
+					printf("\t");
+				}
+
+				printf("[ %s ]\t\t",gettype_to_String(ent->type));
+				printf("( line %d )\t\t",ent->value.funcVal->line);
+				printf("( scope %d )\n",ent->value.funcVal->scope);
+			}
+		}
+		if(ent->next!=NULL){
+			ent = ent->next;
+		}else{
+			break;
+		}
+	}
+}
+
+int look_up(const char *name)
+{	
+	int type;
+	SymbolTableEntry *temp = head->entry;
+
+	const char *temp_name = name;
+	
+	while(temp!=NULL && (temp_name!=temp->value.varVal->name ||temp_name!=temp->value.funcVal->name)){
+		temp=temp->next;
+	}
+	if(temp!=NULL){
+		
+		printf("/n name %s  scope %d  line %d",temp->value.funcVal->name,temp->value.funcVal->scope,temp->value.funcVal->line);
+		return 1;
+	}
+	return 0;
+}
+
+
+int check_lib_func(Variable *x){
+	SymbolTableEntry *ent = head->entry;
+
+	while(ent!=NULL && ent->type == LIBFUNC){
+		if(x->name != ent->value.funcVal->name){
+			ent = ent->next;
+		}else{
+			printf("Error - A LIBFUNC have the same Name \n");
+			return 1;
+		}
+	}
+	return 0;
 }

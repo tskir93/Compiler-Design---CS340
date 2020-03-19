@@ -43,8 +43,20 @@ void printela();
 
 void printSymtable();
 
+void printSymtable_hide();
+
+void hide(int scope);
+
+int check_lib_func(Variable *x);
+
 const char* gettype_to_String(enum SymbolType type);
+
 void insert_variable(SymTable *sym,const char *name,unsigned int scope, unsigned int line, enum SymbolType type);
+
 void insert_function(SymTable *sym,const char *name,unsigned int scope, unsigned int line, enum SymbolType type);
+
 void check_Var_or_Func(SymTable *sym,const char *name,unsigned int scope, unsigned int line, enum SymbolType type);
+
 int check_type_for_print(enum SymbolType type);
+
+int look_up(const char *name);
