@@ -1,11 +1,15 @@
 #include "functions.h"
 
 SymTable *head; 
+
+
+int random_num = 0;
 int i=0;
+char name[] ="_f";
 
 /*synartisi gia eisagwgi enos variable sto symtable*/
 void insert_variable(SymTable *sym,const char *name,unsigned int scope, unsigned int line, enum SymbolType type){
-	int temp_scope;
+
 	SymbolTableEntry *new = (SymbolTableEntry *)malloc(sizeof(SymbolTableEntry));
 	Variable *new_var = (Variable *)malloc(sizeof(Variable));
 	new->value.varVal = (Variable *)malloc(sizeof(Variable));
@@ -18,26 +22,26 @@ void insert_variable(SymTable *sym,const char *name,unsigned int scope, unsigned
 	
 
 	/*vazoyme ston symtable to variable p ftiaksame*/
-	new->isActive = 1;
+	new->isActive = 0;
 	new->value.varVal =(Variable *) new_var;
+	new->type = type;
+	new->next = NULL;
 
 	if(temp == NULL){
 		head->entry = new;
 		//temp = new;
 	}else{
-		temp_scope=new_var->scope;
 		temp = sym->entry;
-		while(temp->next!=NULL && temp->next->value.varVal->scope<temp_scope){
+		while(temp->next!=NULL){
 			temp = temp->next;
 		}
-		new->next=temp->next;
-		temp->next=new;
+		temp->next = new;
 	}
 }
 
 /*sunartisi gia eisagwgi enos function sto symtable*/
 void insert_function(SymTable *sym,const char *name,unsigned int scope, unsigned int line, enum SymbolType type){
-	int temp_scope;
+
 	/*desmevoyme xwro gia ena kainourgio node sto symtable*/
 	SymbolTableEntry *new = (SymbolTableEntry *)malloc(sizeof(SymbolTableEntry));
 	Function *new_func = (Function *)malloc(sizeof(Function));
@@ -45,11 +49,13 @@ void insert_function(SymTable *sym,const char *name,unsigned int scope, unsigned
 	
 	SymbolTableEntry *temp = sym->entry;
 
+	//printf("mpainei 1\n");
 	new_func -> name = name;
 	new_func -> scope = scope;
 	new_func -> line = line;
+	//printf("mpainei 2\n");
 
-	new->isActive = 1;
+	new->isActive = 0;
 	new->value.funcVal = (Function *) new_func;
 	new->type = type;
 	new->next = NULL;
@@ -57,20 +63,17 @@ void insert_function(SymTable *sym,const char *name,unsigned int scope, unsigned
 	if(temp == NULL){
 		head->entry = new;
 		//temp = new;
-
+		//printf("mpaieni edw prepei na mpainei mono tin prwti fora\n");
 	}else{
-		temp_scope=new_func->scope;
 		temp = sym->entry;
-		
-		while(temp->next!=NULL && temp->next->value.funcVal->scope<temp_scope){
+		while(temp->next!=NULL){
 			temp = temp->next;
 		}
-		new->next=temp->next;
-		temp->next=new;
+		temp->next = new;
+		temp = temp->next;
 	}
 
 }
-
 
 
 /*synartisi poy elegxei an auto poy diavase einai variable i function*/
@@ -90,6 +93,16 @@ int check_type_for_print (enum SymbolType type){
 		return 0;
 	}else if( type == USERFUNC || type == LIBFUNC){
 		return 1;
+	}
+}
+
+int check_type(SymbolTableEntry *ent){
+	if(ent!=NULL){
+		if (ent->type == GLOBAL || ent->type == LOCALE || ent->type == FORMAL){
+			return 0;
+		}else if( ent->type == USERFUNC || ent->type == LIBFUNC){
+			return 1;
+		}
 	}
 }
 
@@ -122,14 +135,16 @@ SymTable *new_Symtable(){
 /*thelei emploutismo gia na kanei swsto print*/
 void printSymtable(){
 	SymbolTableEntry *ent = head->entry;
-
+	int flag = 0;
 	printf("-----------------------------------------*****************Symtable output*****************-----------------------------------------\n\n\n");
 	
-	while (ent!=NULL){
+	while (ent!=NULL && flag==0){
 		if(check_type_for_print(ent->type)==0){
 			
 			printf("\"%s\"",ent->value.varVal->name);
-			if(strlen(ent->value.varVal->name)<6){
+			if(strlen(ent->value.varVal->name) <=2){
+				printf("\t\t\t\t\t");
+			}else if(strlen(ent->value.varVal->name) > 2 && strlen(ent->value.varVal->name)<6){
 				printf("\t\t\t");
 			}else if(strlen(ent->value.varVal->name)>=6 && strlen(ent->value.varVal->name)<12){
 				printf("\t\t");	
@@ -137,20 +152,26 @@ void printSymtable(){
 				printf("\t");
 			}
 			printf("[ %s ]\t",gettype_to_String(ent->type));
-			printf("( line %d )\t",ent->value.varVal->line);
+
+			printf("( line %d )\t\t",ent->value.varVal->line);
 			printf("( scope %d )\n",ent->value.varVal->scope);
 
 		}else if(check_type_for_print(ent->type)==1){
-			printf("\"%s\"\t\t",ent->value.funcVal->name);
-			if(strlen(ent->value.varVal->name)<6){
+			
+			printf("\"%s\"",ent->value.funcVal->name);
+			if(strlen(ent->value.funcVal->name) <=2){
 				printf("\t\t\t");
-			}else if(strlen(ent->value.varVal->name)>=6 && strlen(ent->value.varVal->name)<12){
+			}else if(strlen(ent->value.funcVal->name)<6){
+				printf("\t\t\t");
+			}else if(strlen(ent->value.funcVal->name)>=6 && strlen(ent->value.funcVal->name)<12){
 				printf("\t\t");	
 			}else{
 				printf("\t");
 			}
 
-			printf("[ %s ]\t\t",gettype_to_String(ent->type));
+
+			printf("[ %s ]\t",gettype_to_String(ent->type));
+			
 			printf("( line %d )\t\t",ent->value.funcVal->line);
 			printf("( scope %d )\n",ent->value.funcVal->scope);
 
@@ -158,22 +179,9 @@ void printSymtable(){
 		if(ent->next!=NULL){
 			ent = ent->next;
 		}else{
-			break;
+			flag=1;
 		}
 	}
-}
-
-/*standard sunartisi gia metatropi enum se string gia na to ektupwsoume*/
-const char* gettype_to_String(enum SymbolType type) 
-{
-   switch (type) 
-   {
-      case GLOBAL: return "GLOBAL";
-      case LOCALE: return "LOCAL";
-      case FORMAL: return "FORMAL";
-      case USERFUNC: return "USERFUNC";
-      case LIBFUNC: return "LIBFUNC";
-   }
 }
 
 void hide(int scope){
@@ -199,9 +207,10 @@ void hide(int scope){
 }
 
 
-
 void printSymtable_hide(){
 	SymbolTableEntry *ent = head->entry;
+
+
 
 	printf("-----------------------------------------*****************Symtable output*****************-----------------------------------------\n\n\n");
 	
@@ -209,7 +218,9 @@ void printSymtable_hide(){
 		if(check_type_for_print(ent->type)==0){
 			if(ent->isActive == 1){
 				printf("\"%s\"",ent->value.varVal->name);
-				if(strlen(ent->value.varVal->name)<6){
+				if(strlen(ent->value.varVal->name) <=2){
+					printf("\t\t\t\t\t");
+				}else if(strlen(ent->value.varVal->name) > 3 && strlen(ent->value.varVal->name)<6){
 					printf("\t\t\t");
 				}else if(strlen(ent->value.varVal->name)>=6 && strlen(ent->value.varVal->name)<12){
 					printf("\t\t");	
@@ -223,9 +234,11 @@ void printSymtable_hide(){
 		}else if(check_type_for_print(ent->type)==1){
 			if(ent->isActive ==1){
 				printf("\"%s\"\t\t",ent->value.funcVal->name);
-				if(strlen(ent->value.varVal->name)<6){
+				if(strlen(ent->value.funcVal->name) <=2){
+					printf("\t\t\t\t\t");
+				}else if(strlen(ent->value.funcVal->name)<6){
 					printf("\t\t\t");
-				}else if(strlen(ent->value.varVal->name)>=6 && strlen(ent->value.varVal->name)<12){
+				}else if(strlen(ent->value.funcVal->name)>=6 && strlen(ent->value.funcVal->name)<12){
 					printf("\t\t");	
 				}else{
 					printf("\t");
@@ -244,35 +257,127 @@ void printSymtable_hide(){
 	}
 }
 
-int look_up(const char *name)
-{	
-	int type;
-	SymbolTableEntry *temp = head->entry;
-
-	const char *temp_name = name;
-	
-	while(temp!=NULL && (temp_name!=temp->value.varVal->name ||temp_name!=temp->value.funcVal->name)){
-		temp=temp->next;
+/*standard sunartisi gia metatropi enum se string gia na to ektupwsoume*/
+const char* gettype_to_String(enum SymbolType type) 
+{
+	switch (type) 
+	{
+		case GLOBAL: return "GLOBAL";
+		case LOCALE: return "LOCAL";
+		case FORMAL: return "FORMAL";
+		case USERFUNC: return "USERFUNC";
+		case LIBFUNC: return "LIBFUNC";
 	}
-	if(temp!=NULL){
-		
-		printf("/n name %s  scope %d  line %d",temp->value.funcVal->name,temp->value.funcVal->scope,temp->value.funcVal->line);
-		return 1;
-	}
-	return 0;
 }
 
 
-int check_lib_func(Variable *x){
-	SymbolTableEntry *ent = head->entry;
-
-	while(ent!=NULL && ent->type == LIBFUNC){
-		if(x->name != ent->value.funcVal->name){
-			ent = ent->next;
-		}else{
-			printf("Error - A LIBFUNC have the same Name \n");
-			return 1;
-		}
+int check_if_lib(const char *name){
+	if(strcmp("print",name)==0){
+		printf("ERROR - %s is a LIBFUNC\n",name);				return 1;
 	}
+	else if(strcmp("input",name)==0){
+		printf("ERROR - %s is a LIBFUNC\n",name);				return 1;
+	}
+	else if(strcmp("objectmemberkeys",name)==0){
+		printf("ERROR - %s is a LIBFUNC\n",name);				return 1;
+	}
+	else if(strcmp("objectotalmembers",name)==0){
+		printf("ERROR - %s is a LIBFUNC\n",name);				return 1;
+	}
+	else if(strcmp("objectcopy",name)==0){
+		printf("ERROR - %s is a LIBFUNC\n",name);				return 1;
+	}
+	else if(strcmp("totalarguments",name)==0){
+		printf("ERROR - %s is a LIBFUNC\n",name);				return 1;
+	}
+	else if(strcmp("argument",name)==0){
+		printf("ERROR - %s is a LIBFUNC\n",name);				return 1;
+	}
+	else if(strcmp("typeof",name)==0){
+		printf("ERROR - %s is a LIBFUNC\n",name);				return 1;
+	}
+	else if(strcmp("strtonum",name)==0){
+		printf("ERROR - %s is a LIBFUNC\n",name);				return 1;
+	}
+	else if(strcmp("sqrt",name)==0){
+		printf("ERROR - %s is a LIBFUNC\n",name);				return 1;
+	}
+	else if(strcmp("cos",name)==0){
+		printf("ERROR - %s is a LIBFUNC\n",name);				return 1;
+	}
+	else if(strcmp("sin",name)==0){
+		printf("ERROR - %s is a LIBFUNC\n",name);				return 1;
+	}
+	
+	printf("%s is not a lib func\n",name);
 	return 0;
+
+}
+
+
+char *randomfunc(){
+	char *out = (char*)malloc(sizeof(char));
+	sprintf(out, "%s%d", name, random_num) ;
+	random_num++;
+		//printf("name = %s\n",out);
+	return (out);
+}
+
+
+enum SymbolType check_Var_type_for_function_arg(int scope){
+	if (scope==0){ 
+		return GLOBAL;
+	}else{ 
+		return FORMAL;
+	}
+	
+}
+/*tsekarei an to argument poy einai mesa stin sunartisi uparxei sto global scope i oxi*/
+enum SymbolType check_Var_type_local(int scope){
+	if (scope==0){ 
+		return GLOBAL;
+	}else{ 
+		return LOCALE;
+	}
+	
+}
+
+
+
+SymbolTableEntry *look_up_inscope(const char *name,int scope)
+{
+	SymbolTableEntry *temp = head->entry;
+	const char *temp_name = name;
+	while(temp!=NULL){
+		
+		if(temp->type == FORMAL || temp->type == GLOBAL || temp->type == LOCALE ){
+			if ((strcmp(temp->value.varVal->name,name)==0) && temp->value.varVal->scope==scope){
+				if(scope==0){
+					printf("Already in SymTable in this GLOBAL scope\n");
+					return temp;
+				}else{
+					printf("Already in SymTable in this scope\n");
+					return temp;
+				}
+			}
+
+		}
+		else if(temp->type == USERFUNC || temp->type == LIBFUNC){
+			if ((strcmp(temp->value.funcVal->name,name)==0) && temp->value.funcVal->scope == scope){
+				if(scope==0){
+					printf("Already in SymTable in this GLOBAL scope\n");
+					return temp;
+				}else{
+					printf("Already in SymTable in %d scope\n",scope);		
+					return temp;
+				}
+				
+			}
+
+		}
+		temp=temp->next;
+
+	}
+	printf("not found in look_up_inscope3\n");
+	return NULL;
 }

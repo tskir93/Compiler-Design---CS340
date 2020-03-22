@@ -80,7 +80,7 @@ LE_EQ			"<="
 
 TAB			"\t"
 NEW_LINE	"\n"
-DELIM		({TAB}|{NEW_LINE})*
+DELIM		({TAB}|{NEW_LINE}|{WHITESPACE})*
 LETTER		[A-Za-z]
 DIGIT		[0-9]
 UNDERSCORE	"_"
@@ -256,9 +256,8 @@ STRING_      \"
 {COMMENT}		{}
 
 
-{WHITESPACE}    {
-	                return 1;
-	            }  
+{WHITESPACE}    {}
+
 {NEW_LINE}		{
 					yylineno;
 				}
