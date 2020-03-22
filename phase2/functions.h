@@ -36,13 +36,16 @@ typedef struct SymTable{
 	SymbolTableEntry *entry;
 }SymTable;
 
-
+/*Constracting a new SymbolTable*/
 SymTable *new_Symtable();
 
+/*Taking the type argument and comverting it from type enum to string*/
 const char* gettype_to_String(enum SymbolType type);
 
+/*Function for inserting a variable in Symtable*/
 void insert_variable(SymTable *sym,const char *name,unsigned int scope, unsigned int line, enum SymbolType type);
 
+/*Function for inserting a function in Symtable*/
 void insert_function(SymTable *sym,const char *name,unsigned int scope, unsigned int line, enum SymbolType type);
 
 void check_Var_or_Func(SymTable *sym,const char *name,unsigned int scope, unsigned int line, enum SymbolType type);
@@ -69,3 +72,13 @@ enum SymbolType check_Var_type_local(int scope);
 SymbolTableEntry *look_up_inscope(const char *name,int scope);
 
 int check_type(SymbolTableEntry *ent);
+
+SymbolTableEntry *look_up(const char *name,int scope);
+
+void printSymtable_byscope();
+
+//Function only fro parsing the func with $$=$1 to save the type for later use
+SymbolTableEntry *look_up_inscope_noprint(const char *name,int scope);
+
+/*gia na xeiristw px tin print(x) den thelw na ektypwnei error apla na tsekarw an einai libfunc*/
+int check_if_lib_noprint(const char *name);

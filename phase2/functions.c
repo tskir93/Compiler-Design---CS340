@@ -132,7 +132,7 @@ SymTable *new_Symtable(){
 	return head;
 }
 
-/*thelei emploutismo gia na kanei swsto print*/
+/*Function to print the symtable*/
 void printSymtable(){
 	SymbolTableEntry *ent = head->entry;
 	int flag = 0;
@@ -143,7 +143,7 @@ void printSymtable(){
 			
 			printf("\"%s\"",ent->value.varVal->name);
 			if(strlen(ent->value.varVal->name) <=2){
-				printf("\t\t\t\t\t");
+				printf("\t\t\t");
 			}else if(strlen(ent->value.varVal->name) > 2 && strlen(ent->value.varVal->name)<6){
 				printf("\t\t\t");
 			}else if(strlen(ent->value.varVal->name)>=6 && strlen(ent->value.varVal->name)<12){
@@ -184,6 +184,7 @@ void printSymtable(){
 	}
 }
 
+/*function to use it while you are getting out of a block so the vars and funcs inside will hide */
 void hide(int scope){
 	SymbolTableEntry *ent = head -> entry;
 	
@@ -358,7 +359,7 @@ SymbolTableEntry *look_up_inscope(const char *name,int scope)
 				}else{
 					printf("Already in SymTable in this scope\n");
 					return temp;
-				}
+				}	
 			}
 
 		}
@@ -380,4 +381,187 @@ SymbolTableEntry *look_up_inscope(const char *name,int scope)
 	}
 	printf("not found in look_up_inscope3\n");
 	return NULL;
+}
+
+SymbolTableEntry *look_up(const char *name,int scope){
+
+ 	SymbolTableEntry *temp = head->entry;
+	const char *temp_name = name;
+	int temp_scope=scope;
+	while(temp_scope>0 || temp_scope==0){
+		
+		while((temp->next!=NULL && temp->value.varVal->scope<temp_scope)  || (temp->next!=NULL && temp->value.funcVal->scope<temp_scope)){
+			temp=temp->next;
+		}//pigainoume sto scope pou exoume os input
+			if(temp->type == FORMAL || temp->type == GLOBAL || temp->type == LOCALE ){ 
+				if ((strcmp(temp->value.varVal->name,temp_name)==0) && temp->value.varVal->scope==temp_scope){
+					printf("\nexoume tin metabliti %s sto scope %d kai stin line %d\n",temp->value.varVal->name,temp->value.varVal->scope,temp->value.varVal->line);
+					return temp;
+				}
+
+			}
+			else if(temp->type == USERFUNC || temp->type == LIBFUNC){
+				if ((strcmp(temp->value.funcVal->name,temp_name)==0) && temp->value.funcVal->scope == temp_scope) {
+					printf("\nexoume tin sinartisi %s sto scope %d kai stin line %d\n",temp->value.funcVal->name,temp->value.funcVal->scope,temp->value.funcVal->line);
+					return temp;
+				}
+
+			}
+
+			while((temp!=NULL && strcmp(temp->value.varVal->name,temp_name)!=0) || (temp!=NULL &&  strcmp(temp->value.funcVal->name,temp_name)!=0) ){
+					temp=temp->next;
+				//printf("mpika");
+				}
+				if(temp!=NULL){
+					if(temp->type == FORMAL || temp->type == GLOBAL || temp->type == LOCALE ){
+						if ((strcmp(temp->value.varVal->name,name)==0) && temp->value.varVal->scope==scope){
+						printf("\nAlready in SymTable in this scope\n");
+						return temp;
+						}
+
+					}
+					else if(temp->type == USERFUNC || temp->type == LIBFUNC){
+						if ((strcmp(temp->value.funcVal->name,name)==0) && temp->value.funcVal->scope == scope) {
+							printf("\nAlready in SymTable in this scope\n");
+							return temp;
+						}
+
+					}
+				}
+			
+			temp=head->entry;
+			temp_scope--;
+		}
+		printf("not found in scope %d or smaller",temp_scope);
+		return NULL;
+	
+}
+
+
+void printSymtable_byscope(){
+	SymbolTableEntry *ent = head->entry;
+	int flag = 0;
+		printf("-----------------------------------------*****************Symtable output*****************-----------------------------------------\n\n\n");
+
+		if(ent->value.varVal->scope == 0){
+			printf("-----------------------------------------***************** Scope  #0 *****************-----------------------------------------\n\n");
+		}	
+	while (ent!=NULL && flag==0){
+		if(check_type_for_print(ent->type)==0){
+			if(ent->next->value.varVal->scope > ent->value.varVal->scope){
+				printf("\n\n-----------------------------------------***************** Scope  #%d *****************-----------------------------------------\n\n",ent->next->value.varVal->scope);
+			}
+			printf("\"%s\"",ent->value.varVal->name);
+			if(strlen(ent->value.varVal->name) <=2){
+				printf("\t\t\t");
+			}else if(strlen(ent->value.varVal->name) > 2 && strlen(ent->value.varVal->name)<6){
+				printf("\t\t\t");
+			}else if(strlen(ent->value.varVal->name)>=6 && strlen(ent->value.varVal->name)<12){
+				printf("\t\t");	
+			}else{
+				printf("\t");
+			}
+			printf("[ %s ]\t",gettype_to_String(ent->type));
+
+			printf("( line %d )\t\t",ent->value.varVal->line);
+			printf("( scope %d )\n",ent->value.varVal->scope);
+
+		}else if(check_type_for_print(ent->type)==1){
+			if(ent->next->value.funcVal->scope > ent->value.funcVal->scope){
+				printf("\n\n-----------------------------------------***************** Scope  #%d *****************-----------------------------------------\n\n",ent->next->value.funcVal->scope);
+			}
+			printf("\"%s\"",ent->value.funcVal->name);
+			if(strlen(ent->value.funcVal->name) <=2){
+				printf("\t\t\t");
+			}else if(strlen(ent->value.funcVal->name)<6){
+				printf("\t\t\t");
+			}else if(strlen(ent->value.funcVal->name)>=6 && strlen(ent->value.funcVal->name)<12){
+				printf("\t\t");	
+			}else{
+				printf("\t");
+			}
+
+
+			printf("[ %s ]\t",gettype_to_String(ent->type));
+			
+			printf("( line %d )\t\t",ent->value.funcVal->line);
+			printf("( scope %d )\n",ent->value.funcVal->scope);
+
+		}
+		if(ent->next!=NULL){
+			ent = ent->next;
+		}else{
+			flag=1;
+		}
+	}
+}
+
+
+SymbolTableEntry *look_up_inscope_noprint(const char *name,int scope)
+{
+	SymbolTableEntry *temp = head->entry;
+	const char *temp_name = name;
+	while(temp!=NULL){
+		
+		if(temp->type == FORMAL || temp->type == GLOBAL || temp->type == LOCALE ){
+			if ((strcmp(temp->value.varVal->name,name)==0) && temp->value.varVal->scope==scope){
+				if(scope==0){
+					
+					return temp;
+				}else{
+					
+					return temp;
+				}	
+			}
+
+		}
+		else if(temp->type == USERFUNC || temp->type == LIBFUNC){
+			if ((strcmp(temp->value.funcVal->name,name)==0) && temp->value.funcVal->scope == scope){
+				if(scope==0){
+					
+					return temp;
+				}else{
+						
+					return temp;
+				}
+				
+			}
+
+		}
+		temp=temp->next;
+
+	}
+	
+	return NULL;
+}
+
+/*gia na xeiristw px tin print(x) den thelw na ektypwnei error apla na tsekarw an einai libfunc*/
+int check_if_lib_noprint(const char *name){
+	if(strcmp("print",name)==0){				return 1;
+	}
+	else if(strcmp("input",name)==0){		return 1;
+	}
+	else if(strcmp("objectmemberkeys",name)==0){				return 1;
+	}
+	else if(strcmp("objectotalmembers",name)==0){			return 1;
+	}
+	else if(strcmp("objectcopy",name)==0){			return 1;
+	}
+	else if(strcmp("totalarguments",name)==0){			return 1;
+	}
+	else if(strcmp("argument",name)==0){			return 1;
+	}
+	else if(strcmp("typeof",name)==0){				return 1;
+	}
+	else if(strcmp("strtonum",name)==0){				return 1;
+	}
+	else if(strcmp("sqrt",name)==0){				return 1;
+	}
+	else if(strcmp("cos",name)==0){				return 1;
+	}
+	else if(strcmp("sin",name)==0){				return 1;
+	}
+	
+	return 0;
+
 }
