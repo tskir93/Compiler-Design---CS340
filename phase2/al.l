@@ -298,10 +298,11 @@ STRING_      \"
 
 
 {STRING_}			    {
-                            int count=0;
+                            /*printf("mpainei edw1\n");*/
 		                    int line=0;
 		                    int i=0;
 		                    char in;
+                            int count=0;
 		                    mystring=(char *)malloc(yyleng *sizeof(char));
 		                    while((in = input()) != EOF){
 			                    if(in=='\\'){
@@ -351,7 +352,8 @@ STRING_      \"
 					                        mystring[i]=in;
 					                        i++;	
 				                    }
-			                    }else if(in==STRING_){
+			                    }else if(in=='\"'){                          /*den empaine edw gia auto evgaze segmentation*/
+                                    /*printf("mpainei edw\n");*/
 				                    count++;
 				                    line=yylineno;
 				                    mystring[i]='\0';
