@@ -13,12 +13,13 @@ int yyerror (char* yaccProvidedMessage);
 
 int scope = 0;
 /*metavliti gia na tsekaroume an to id einai mesa se return poy an einai den ftiaxnoume var*/
-int ret = 0;
-int call=0;
-int lib =0; 	
+int ret = 0; 	
 /* metavliti gia ton elegxo an mesolavei sunartisi */
 int check_if_open_func = 0;
-
+int loop_signal = 0;
+int block_func_signal = 0;
+int assign_op = 0;
+int is_func = 0;
 /*int libfunc gia na vlepomy ena i sunartisi i opoia kalei ta ids einai libfunc giati an einai kanoume mono lookup*/
 int libfunc=0;
 SymTable *Symtbl; 
@@ -98,14 +99,28 @@ stmt			:	expr SEMICOLON			{printf("stmt <- expr;\n\n");}
 				|	whilestmt				{printf("stmt <- whilestmt\n\n");}
 				|	forstmt					{printf("stmt <- forstmt\n\n");}
 				|	returnstmt				{printf("stmt <- returnstmt\n\n");}
-				|	BREAK SEMICOLON				{printf("stmt <- break;\n\n");}
-				|	CONTINUE SEMICOLON			{printf("stmt <- continue;\n\n");}
+				|	BREAK SEMICOLON				{
+				                                    if(loop_signal==0 && scope==0){
+				                                    	printf("\033[1;31m");
+				                                        printf("Error in line %d - Use of 'break' while not in a loop\n",yylineno);
+				                                        printf("\033[0m");
+				                                    }
+				                                    printf("stmt <- break;\n\n");}
+				|	CONTINUE SEMICOLON			{
+				                                    if(loop_signal==0 && scope==0){
+				                                   		printf("\033[1;31m");
+				                                        printf("Error in line %d - Use of 'break' while not in a loop\n",yylineno);
+				                                        printf("\033[0m");
+				                                    }
+				                                    printf("stmt <- continue;\n\n");}
 				|	block					{printf("stmt <- block\n\n");}
 				|	funcdef					{printf("stmt <- funcdef\n\n");}
 				| 	SEMICOLON				{printf("stmt <- ;\n\n");}
 				;
 
-expr			:	assignexpr						{printf("expr <- assignexpr\n");}
+expr			:	assignexpr						{   
+
+                                                        printf("expr <- assignexpr\n");}
 				|	expr PLUS expr				{printf("expr <- expr op expr\n");}
 				|	expr MINUS expr				{printf("expr <- expr op expr\n");}
 				|	expr MULTIPLY expr				{printf("expr <- expr op expr\n");}
@@ -132,7 +147,7 @@ term			: 	LEFT_PAR expr RIGHT_PAR			{printf("term <- ( expr )\n");}
 														if(check_type_for_print($2->type)==1){
 															printf("\033[1;31m");
 															printf("Error in line %d - DOUBLE_PLUS lvalue action could not be used with Functions\n",yylineno);}
-															printf("\033[0m;");
+															printf("\033[0m");
 															printf("term <- ++lvalue \n");}
 															
 
@@ -140,7 +155,7 @@ term			: 	LEFT_PAR expr RIGHT_PAR			{printf("term <- ( expr )\n");}
 														if(check_type_for_print($1->type)==1){
 															printf("\033[1;31m");
 															printf("Error in line %d - lvalue DOUBLE_PLUS action could not be used with Functions\n",yylineno);
-															printf("\033[0m;");
+															printf("\033[0m");
 														}
 														printf("term <- lvalue++ \n");}
 
@@ -148,29 +163,31 @@ term			: 	LEFT_PAR expr RIGHT_PAR			{printf("term <- ( expr )\n");}
 														if(check_type_for_print($2->type)==1){
 															printf("\033[1;31m");
 															printf("Error in line %d - DOUBLE_MINUS lvalue action could not be used with Functions\n",yylineno);}
-															printf("\033[0m;");
+															printf("\033[0m");
 															printf("term <- --lvalue \n");}
 
 				|	lvalue DOUBLE_MINUS				{
 														if(check_type_for_print($1->type)==1){
 															printf("\033[1;31m");
 															printf("Error in line %d - lvalue DOUBLE_MINUS action could not be used with Functions\n",yylineno);}
-															printf("\033[0m;");
+															printf("\033[0m");
 															printf("term <- lvalue-- \n");}
 
 				|	primary							{printf("term <- primary \n");}
 				;
 
-assignexpr		:	lvalue 			{if(check_type_for_print($1->type)==1){
+assignexpr		:	lvalue 			{if($1!=NULL ){
+													if(check_type_for_print($1->type)==1){
 															printf("\033[1;31m");
 															printf("Error in line %d - ASSIGN action could not be used with Functions\n",yylineno);
-															printf("\033[0m;");
-													}}
+															printf("\033[0m");
+													}}}
 
 
 
 							ASSIGN expr				 
 															{printf("assignexpr <- lvalue = expr \n");}
+
 				;
 
 primary			:	lvalue						{printf("primary <- lvalue \n");}
@@ -181,44 +198,112 @@ primary			:	lvalue						{printf("primary <- lvalue \n");}
 				;
 
 
-lvalue			:	ID 							{	if(look_up_inscope_noprint($1,scope)==NULL){ // ean den to broume sto scope pou eimaste 
-														if(look_up($1,scope)==NULL){ //ean den to broume se kanena scope
-															//if(libfunc==1){printf("tralala"); break;} 
-															if(check_if_lib($1,yylineno)==0 && ret==0 && libfunc==0){ // ret==0 ean den exoume  kapoio return kai libfunc 
-																insert_variable(Symtbl,$1,scope,yylineno,check_Var_type_for_function_arg(scope));
+lvalue			:	ID 							{	
+                                                    if(look_up_inscope($1,scope)==NULL){
+                                                        if(ret==0){
+                                                        	
+                                                            if(check_if_open_func==0){
+                                                                if(look_up($1,scope-1)==NULL){
+                                                                	printf("mpainei edw 2\n");
+														            if(check_if_lib($1,yylineno)==0 && libfunc==0){
+															            insert_variable(Symtbl,$1,scope,yylineno,check_Var_type_local(scope));
+															            //printf("%s variable Scope %d\n",$1, scope);
+															        }
+														            
+														        
+														        }else if(look_up($1,scope-1)!=NULL){
+														            if(look_up($1,scope-1)->type==GLOBAL){
+														                //printf("Ok %s is a global var\n",$1);
+														                //printSymtable();
+														            }else if(look_up($1,scope-1)->type==LOCALE){
+														                //printf("Ok %s refers to the previous variable and is visible\n",$1);
+														            }
+														            
+														        }
+														        
+                                                            }else if(check_if_open_func!=0){
+                                                           
+                                                                if(look_up($1,scope-1)==NULL){
+                                                                    if(check_if_lib($1,yylineno)==0 && libfunc==0){
+															            insert_variable(Symtbl,$1,scope,yylineno,check_Var_type_local(scope));
+															            //printf("%s variable Scope %d\n",$1, scope);
+															        }
+														            
+														            
+														        }else if(look_up($1,scope-1)!=NULL){
+														        printf("mpainei edw 5\n");
+														            if(block_func_signal<=1){
 
-															}else if(ret == 1){
-																if(look_up_inscope_noprint($1,scope)==NULL){
-																	printf("\033[1;31m");
-																	printf("Error in line %d - This var could not be accessed from this func\n",yylineno);
-																	printf("\033[0m");
-																}
-															}
+														            }else if(block_func_signal>1){
+														                if((look_up($1,scope-1)->type!=GLOBAL || look_up($1,scope-1)->type==LOCALE || look_up($1,scope-1)->type==FORMAL) && look_up($1,scope-1)->type!=USERFUNC){
+														                    printf("\033[1;31m");
+														                    printf("Error in line %d - cannot access %s in this function\n",yylineno,$1);
+														                    printf("\033[0m");
+														                }
+														                
+														            }
+														            
+														        }
+                                                            }
+                                                         
+													    }else if(ret!=0){
+													    printf("mpainei edw 6\n");
+													        if(check_if_open_func==0 && scope==0){
+													        	printf("\033[1;31m");
+													            printf("Error in line %d - Use of 'return' while not in a function\n",yylineno);
+													            printf("\033[0m");
+													            //printSymtable();
+													        }else if(check_if_open_func!=0){
+													            if(look_up($1,scope-1)==NULL){
+													                if(check_if_lib($1,yylineno)==0 && libfunc==0){
+															            insert_variable(Symtbl,$1,scope,yylineno,check_Var_type_local(scope));
+															            //printf("%s variable Scope %d\n",$1, scope);
+															  
+															        }
+															        //printSymtable();
+															        
+													            }else if(look_up($1,scope-1)!=NULL){
+													                if(check_if_function_before(scope)==0){
+													                    if(look_up($1,scope-1)->type==GLOBAL || look_up($1,scope-1)->type==USERFUNC || look_up($1,scope-1)->type==LOCALE){
+													                        printf("\033[1;31m");
+													                        printf("Error in line %d -  %s cannot access in this function\n",yylineno,$1);
+													                        printf("\033[0m");
+														                   //printSymtable();
+														                   
+													                    }
+													                    
+													                }else{
+													                    if(look_up($1,scope-1)->type==GLOBAL || look_up($1,scope-1)->type!=LOCALE
+													                    || look_up($1,scope-1)->type==USERFUNC
+													                    || look_up($1,scope-1)->type==LIBFUNC){
+													                        //printf("Ok: %s can access in this function\n",$1);
+													                    }else{
+													                        printf("\033[1;31m");
+													                        printf("Error in line %d - %s cannot access in this function\n",yylineno,$1);
+													                    	printf("\033[0m");
+													                    }
+													                    
+													                }
+													                
+													            }
+													            
+														    }
+													    }
+													  
+                                                    }	
+                                                    // $$ = look_up_inscope_noprint($1,scope); 
+                                                    if(look_up_inscope($1,scope)!=NULL && ret!=0 && scope==0){
+                                                    		printf("\033[1;31m");
+													            printf("Error in line %d - Use of 'return' while not in a function\n",yylineno);
+													            printf("\033[0m");
+                                                    }
+													//printSymtable();
+													//toy dinw tin timi poy exei to lvalue gia na tin xrisimopoiisw meta stoys kanones lvalue ++ klp
+														if(look_up_inscope_noprint($1,scope)!=NULL){
+															$$ = look_up_inscope_noprint($1,scope);
 														}
-														else{ // ean to broume se kapoio scope 
-															if(check_if_function_before(scope)==1 && check_if_lib_noprint($1)==0  && look_up($1,0)==NULL){
-																	printf("\033[1;31m");
-																	printf("Error in line %d - Cannot access Var inside function\n",yylineno);
-																	printf("\033[0m");
-																}
-																else{
-																	//printf("ok,found in lower scope\n");
-																}
-															}
-															
-														} 
-														else{// ean to broume sto scope pou eimaste 
-															//printf("ok,found in scope %d\n",scope);
-
-														//toy dinw tin timi poy exei to lvalue gia na tin xrisimopoiisw meta stoys kanones lvalue ++ klp
-														$$ = look_up_inscope_noprint($1,scope);
-														printf("lvalue <- ID \n");	
-														}
-
-													
-													
-
-													}
+														printf("lvalue <- ID \n");
+												    }
 
 				|	LOCAL ID 					{if(look_up_inscope_noprint($2,scope)==NULL && ret==0){ 
 															if(check_if_lib($2,yylineno)==0){
@@ -226,7 +311,7 @@ lvalue			:	ID 							{	if(look_up_inscope_noprint($1,scope)==NULL){ // ean den t
 																insert_variable(Symtbl,$2,scope,yylineno,check_Var_type_local(scope));
 															}
 													}else if(look_up_inscope_noprint($2,scope)!=NULL ){
-														printf("OK found locally.\n");
+														//printf("OK found locally.\n");
 													}
 
 													//toy dinw tin timi poy exei to lvalue gia na tin xrisimopoiisw meta stoys kanones lvalue ++ klp
@@ -243,15 +328,20 @@ lvalue			:	ID 							{	if(look_up_inscope_noprint($1,scope)==NULL){ // ean den t
 				|	member 						{printf("lvalue <-  member\n");}	
 				;
 
-
 member			:	lvalue DOT ID 								{printf("member <- lvalue.ID \n");}
 				|	lvalue LEFT_SQ_BR expr RIGHT_SQ_BR 			{printf("member <- lvalue { expr } \n");}
 				|	call DOT ID 								{printf("member <- call.ID \n");}
 				|	call LEFT_SQ_BR expr RIGHT_SQ_BR 			{printf("member <- call { expr } \n");}
 				;
 
-call			:	call LEFT_PAR elist RIGHT_PAR 				{printf("call <- call ( elist ) \n");}					 
-				|	lvalue callsuffix	{lib=0;}						{printf("call <- lvalue callsuffix \n");}
+call			:	call LEFT_PAR elist RIGHT_PAR 				{printf("call <- call ( elist ) \n");}				/*tsekarw px tin print(x) kai an einai libfunc opws i print theloyme apla na kanei lookup sto x kai oxi insert*/
+				|	lvalue {if(check_type($1)==1){
+								if(check_if_lib_noprint($1->value.funcVal->name)==1){
+								    libfunc=1;
+								    is_func=1;
+								}
+							}} callsuffix
+																	{printf("call <- lvalue callsuffix \n");}
 
 
 				|	LEFT_PAR funcdef RIGHT_PAR LEFT_PAR elist RIGHT_PAR						 {printf("call <- ( funcdef )( elist )\n");}
@@ -270,13 +360,13 @@ methodcall		:	DOUBLE_DOT ID LEFT_PAR elist RIGHT_PAR       	{printf("methodcall 
 				;
 
 elist			:	expr														{printf("elist <- expr\n");}
-				|	expr COMMA elists
-				|																{printf("elist <- ,expr\n");}
+				|	expr COMMA elists														{printf("elist <- ,expr\n");}
+				|
 				;
 
 elists			:	expr
 				|	expr COMMA elists
-				
+				|
 				;
 
 
@@ -293,27 +383,33 @@ indexedelem 	:	LEFT_BR expr COLON expr RIGHT_BR 	{printf("indexedelem <- {expr :
 				;
 
 block			:	LEFT_BR RIGHT_BR
-				|	LEFT_BR {++scope;} stmt stmts RIGHT_BR {hide(scope--);} 				{printf("block <- { stmt }\n");}	//allagi apo stmt stmts se stmts
+				|	LEFT_BR{++scope;} stmt stmts RIGHT_BR{;hide(scope--);} 				{printf("block <- { stmt }\n");}	
 				;
 
-funcdef			:	FUNCTION ID {if(look_up_inscope($2,scope)==NULL){
-											if(check_if_lib($2,yylineno)==0){
+funcdef			:	FUNCTION ID 			{           
+                                                        ++check_if_open_func;
+                                                        ++block_func_signal;
+                                                        if(look_up_inscope($2,scope)==NULL){
+															if(check_if_lib($2,yylineno)==0){
 																insert_function(Symtbl,$2,scope,yylineno,USERFUNC);
-											}
-								}else{
-											if(check_if_lib($2,yylineno)==1){
-												printf("Collision with library function %s\n",$2);
+																printf("%s function scope %d\n",$2, scope);
+															}
 											}else{
-												printf("\033[1;31m");
-												printf("Error in  line %d - This var is already defined before\n",yylineno);}	
-												printf("\033[0m");
+											    if(check_if_lib($2,yylineno)==1){
+												    printf("Collision with library function %s\n",$2);
+											    }else{
+												    printf("\033[1;31m");
+												    printf("Error in  line %d - This var is already defined before\n",yylineno);	
+												    printf("\033[0m");
+											    }
+											} //printSymtable();
 											}
-								}
-											LEFT_PAR 
+					LEFT_PAR 
 					{++scope;} idlist {--scope;}RIGHT_PAR		
-					{++check_if_open_func;}block{--check_if_open_func;}   													{printf("funcdef <- function ID ( idlist ) block \n");}
-				|	FUNCTION {insert_function(Symtbl,randomfunc(),scope,yylineno,USERFUNC);}
-						LEFT_PAR {++scope;} idlist {--scope;}RIGHT_PAR {++check_if_open_func;}block{--check_if_open_func;}							{printf("funcdef <- function ( idlist ) block \n");}
+					block {--check_if_open_func;--block_func_signal;}													{printf("funcdef <- function ID ( idlist ) block \n");}
+				|	FUNCTION {++check_if_open_func;++block_func_signal;insert_function(Symtbl,randomfunc(),scope,yylineno,USERFUNC); //printSymtable();
+				}
+						LEFT_PAR {++scope;} idlist {--scope;}RIGHT_PAR block	{--check_if_open_func;--block_func_signal;}						{printf("funcdef <- function ( idlist ) block \n");}
 				;
 
 
@@ -344,7 +440,7 @@ idlist			:	ID 										{if(look_up_inscope_noprint($1,scope)==NULL){
 																	/*an exei ginei declared san formal sto idio scope alla se alli synartisi to ksana vazw*/
 																		insert_variable(Symtbl,$1,scope,yylineno,FORMAL);
 																	}else{printf("\033[1;31m");
-																		printf("Error in line %d - Formal argument shadows a LIBFUNC\n",yylineno);
+																		printf("Error in line %d - Formal argument already declared in this scope\n",yylineno);
 																		printf("\033[0m");
 																	}
 															}
@@ -369,7 +465,7 @@ idlist			:	ID 										{if(look_up_inscope_noprint($1,scope)==NULL){
 																	/*an exei ginei declared san formal sto idio scope alla se alli synartisi to ksana vazw*/
 																		insert_variable(Symtbl,$1,scope,yylineno,FORMAL);
 																	}else{printf("\033[1;31m");
-																		printf("Error in line %d - Formal argument shadows a LIBFUNC\n",yylineno);
+																		printf("Error in line %d - Formal argument already declared in this scope\n",yylineno);
 																		printf("\033[0m");
 																	}
 															}
@@ -395,7 +491,7 @@ idlists			:	ID 										{if(look_up_inscope_noprint($1,scope)==NULL){
 																	/*an exei ginei declared san formal sto idio scope alla se alli synartisi to ksana vazw*/
 																		insert_variable(Symtbl,$1,scope,yylineno,FORMAL);
 																	}else{printf("\033[1;31m");
-																		printf("Error in line %d - Formal argument shadows a LIBFUNC\n",yylineno);
+																		printf("Error in line %d - Formal argument already declared in this scope\n",yylineno);
 																		printf("\033[0m");
 																	}
 															}
@@ -419,7 +515,7 @@ idlists			:	ID 										{if(look_up_inscope_noprint($1,scope)==NULL){
 																	/*an exei ginei declared san formal sto idio scope alla se alli synartisi to ksana vazw*/
 																		insert_variable(Symtbl,$1,scope,yylineno,FORMAL);
 																	}else{printf("\033[1;31m");
-																		printf("Error in line %d - Formal argument shadows a LIBFUNC\n",yylineno);
+																		printf("Error in line %d - Formal argument already declared in this scope\n",yylineno);
 																		printf("\033[0m");
 																	}
 															}
@@ -427,22 +523,19 @@ idlists			:	ID 										{if(look_up_inscope_noprint($1,scope)==NULL){
 															{printf("idlist <- ,ID \n");}
 				;
 
-ifstmt			: 	IF LEFT_PAR expr RIGHT_PAR stmt else  	{printf("ifstmt <- if ( expr ) stmt \n");}
+ifstmt			: 	IF LEFT_PAR expr RIGHT_PAR stmt  {printf("ifstmt <- if ( expr ) stmt \n");}
+				|   IF LEFT_PAR expr RIGHT_PAR stmt ELSE stmt {printf("ifstmt <- if ( expr ) stmt \n");}
 				;
 
-else 			: 	ELSE stmt
-				|
-				;
-
-whilestmt		:	WHILE LEFT_PAR expr RIGHT_PAR stmt 		{printf("whilestmt <- while ( expr ) stmt \n");}
+whilestmt		:	WHILE LEFT_PAR expr RIGHT_PAR {loop_signal++;} stmt {loop_signal--;} 		{printf("whilestmt <- while ( expr ) stmt \n");}
 				;
 
 
-forstmt			:	FOR LEFT_PAR elist SEMICOLON expr SEMICOLON elist RIGHT_PAR stmt 	{printf("forstmt <- for ( elist; expr; elist ) stmt \n");}
+forstmt			:	FOR LEFT_PAR elist SEMICOLON expr SEMICOLON elist RIGHT_PAR {loop_signal++;} stmt {loop_signal--;} {printf("forstmt <- for ( elist; expr; elist ) stmt \n");}
 				;
 
-returnstmt		:	RETURN SEMICOLON 								{printf("returnstmt <- return; \n");}
-				| 	RETURN {ret=1;}expr{ret=0;} SEMICOLON		{printf("returnstmt <- return expr; \n");}
+returnstmt		:	RETURN SEMICOLON 			{printf("returnstmt <- return; \n");}
+				| 	RETURN {ret=1;}expr SEMICOLON{ret=0;}		{printf("returnstmt <- return expr; \n");}
 				;
 
 
@@ -462,8 +555,14 @@ int yyerror(char* yaccProvidedMessage){
 int main(int argc, char **argv) {
 	int x;
 	Symtbl = new_Symtable();
-		yyin = stdin;
-
+	yyin = stdin;
+	/*
+	if(argc>1){
+        if(!(yyin=fopen(argv[1],"r"))){
+            fprintf(stderr, "Cannot read file: %s\n",argv[1]);
+            return 1;
+        }
+    }*/
 		
 		
 
