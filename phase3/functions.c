@@ -679,6 +679,7 @@ SymbolTableEntry *newtemp(SymTable *Symtable,unsigned int scope, unsigned int li
 		//char * new_name = newtempname();
         insert_variable(Symtable,name,scope,line,LOCALE);
         SymbolTableEntry *sym = look_up_inscope_noprint(name,scope);
+        //sym->lala =1;
         return sym;
 	}
 }
@@ -969,17 +970,17 @@ switch(ex->type){
 	case libraryfunc_e:
 		{printf("%-15s",ex->val.strConst);
 		return 1;}*/
-	case arithexpr_e:
-		{printf("%-15s",ex->val.numConst);
+////	case arithexpr_e:
+////		{printf("%-15s",ex->val.numConst);
 		//printf("mpainei1\n");
-		return 1;}
+////		return 1;}
 	/*case boolexpr_e:
 		{printf("%-15s",ex->val.strConst);
 		return 1;}*/
-	case assignexpr_e:
-		{printf("%-15s",ex->val.strConst);
+////	case assignexpr_e:
+////		{printf("%-15s",ex->val.strConst);
 		//printf("mpainei2\n");
-		return 1;}
+////		return 1;}
 	/*case newtable_e:
 		{printf("%-15s",ex->val.strConst);
 		return 1;}*/
@@ -987,15 +988,15 @@ switch(ex->type){
 		{printf("%-15d",ex->x);
 		//printf("mpainei3\n");
 		return 1;}
-	case constbool_e:
-		{if(ex->val.boolConst==1)printf("true");
-		else printf("false");return 1;}
+////	case constbool_e:
+	////	{if(ex->val.boolConst==1)printf("true");
+////		else printf("false");return 1;}
 
-	case conststring_e:
-		{printf("%-15s",ex->val.strConst);
-		return 1;}
-	case nil_e:
-		{return 1;}
+////	case conststring_e:
+////		{printf("%-15s",ex->val.strConst);
+////		return 1;}
+////	case nil_e:
+////		{return 1;}
 	default: return 0;
 	}
 }
@@ -1020,16 +1021,16 @@ void printquads(){	//tiponei ta quads
 		printf("%-15s",temp->result->sym->value.varVal->name);//(temp->result);
 	}
 	if(temp->arg1!=NULL){
-		if(check_expr(temp->arg1)!=0){
+		if(check_expr(temp->arg1)!=0 ){
 			//printf("mpaieni sto if\n");
 		}else{
 			//printf("mpainei sto else\n");
-			if(temp->arg1->sym!=NULL){
+			if(temp->arg1->sym!=NULL ){
 				//printf("mpainei sto else sto ifasdsadas\n");
 				printf("%-15s",temp->arg1->sym->value.varVal->name);//(temp->result);
 			}
 		}
-	}//print_expr(temp->arg1);
+	}
 	if(temp->arg2!=NULL){			//printf("mpaieni edw1");//print_expr(temp->arg2);
 		//printf("mpainei edw;adsdsadsadsadsa	");
 		if(check_expr(temp->arg2)!=0){
@@ -1040,6 +1041,7 @@ void printquads(){	//tiponei ta quads
 			}
 		}
 	}
+	
 	if(temp->label!=0)printf("%d\n",temp->label);
 	printf("\n");
 	counter++;	

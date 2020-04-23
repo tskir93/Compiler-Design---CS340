@@ -51,6 +51,7 @@ typedef struct SymbolTableEntry {
 		Function *funcVal;
 	} value;
 	enum SymbolType type;
+	//int lala;
 	unsigned offset;
 	enum scopespace_t space;
 	struct SymbolTableEntry *next;

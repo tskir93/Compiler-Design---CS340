@@ -770,7 +770,7 @@ methodcall		:	DOUBLE_DOT ID LEFT_PAR elist RIGHT_PAR       	{
 				;
 
 elist			:	expr														{printf("elist <- expr\n");}
-				|	expr COMMA elists														{printf("elist <- ,expr\n");}
+				|	expr COMMA elist														{printf("elist <- ,expr\n");}
 				|
 				;
 
@@ -806,7 +806,7 @@ tablemake		: 	LEFT_SQ_BR elist RIGHT_SQ_BR			{
 															}
 				;
 
-indexed			:	indexedelem							{printf("indexed <- indexedelem\n");}
+indexed			:	indexedelem									{printf("indexed <- indexedelem\n");}
 				|	indexedelem COMMA indexed 					{printf("indexed <- ,indexedelem \n");}	
 				;
 
