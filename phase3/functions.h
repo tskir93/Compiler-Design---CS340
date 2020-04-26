@@ -14,6 +14,9 @@ struct stack* loopcounterstack;
 typedef struct stmt_t {
 	int breakList;						//periexei toys arithmoys olwn twn quads poy kathena antistoixei se unfinished jump logw kapiou break p periexetai sto stmt
 	int contList;						//periexei toyw arithmoys olwn twn quads poy kathena antistoixei se unfinished jump logw kapioy continue p periexetai sto stmt
+	unsigned enter;
+	unsigned test;
+
 }stmt_t;
 
 typedef struct call{
@@ -126,8 +129,9 @@ typedef struct expr{
     SymbolTableEntry* sym;
     struct expr* index;
     int x;
+    float y;
     union{
-        	int numConst;
+        	double numConst;					//allaxa auto apo int se double
          	char* strConst;
          	unsigned char boolConst;
     }val;

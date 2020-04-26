@@ -168,8 +168,8 @@ void printSymtable(){
 			printf("\"%s\"",ent->value.varVal->name);
 			if(strlen(ent->value.varVal->name) <=2){
 					printf("\t\t\t\t\t");
-				}else if(strlen(ent->value.varVal->name) > 2 && strlen(ent->value.varVal->name)<6){
-					printf("\t\t\t");
+				}else if(strlen(ent->value.varVal->name) > 2 && strlen(ent->value.varVal->name)<6){				//phasi 3 peiraksa auto gia na euthugrammisw mia grammi +2tabs
+					printf("\t\t\t\t\t");
 				}else if(strlen(ent->value.varVal->name)>=6 && strlen(ent->value.varVal->name)<15){
 					printf("\t\t\t\t");	
 				}else{
@@ -952,22 +952,25 @@ const char* get_ic_type_to_String(iopcode type){ //metatrepei to enum iopcode se
 		case tablecreate: return "tablecreate";
 		case tablegetelem: return "tablegetelem";
 		case tablesetelem: return "tablesetelem";
+		case jump: return "jump";			//tskir: added jump
 	
 	}
 }
 
 int check_expr(expr *ex){ //tiponei ta expr
 switch(ex->type){
-	/*case var_e:
-		{printf("%-15s",ex->val.strConst);
-		return 1;}
-	case tableitem_e:
-		{printf("%-15s",ex->val.strConst);
-		return 1;}
+	//case var_e:
+	//	{printf("%-15s",ex->val.strConst);
+	//	return 1;}
+	//case tableitem_e:
+		//printf("mpainei edw gia tableitem\n");
+	//	{//printf("%-15s",ex->val.strConst);
+	//	return 1;}
 	case programfunc_e:
-		{printf("%-15s",ex->val.strConst);
+		//printf("mpainei edw programfunc\n");
+		{printf("%-15s",ex->sym->value.varVal->name);
 		return 1;}
-	case libraryfunc_e:
+	/*case libraryfunc_e:
 		{printf("%-15s",ex->val.strConst);
 		return 1;}*/
 ////	case arithexpr_e:
@@ -988,13 +991,14 @@ switch(ex->type){
 		{printf("%-15d",ex->x);
 		//printf("mpainei3\n");
 		return 1;}
-////	case constbool_e:
-	////	{if(ex->val.boolConst==1)printf("true");
-////		else printf("false");return 1;}
+	case constbool_e:
+		//printf("mpainei edw\n");
+		{if(ex->val.boolConst==1)printf("%-15s","\'false\'");
+		else printf("%-15s","\'true\'");return 1;}
 
-////	case conststring_e:
-////		{printf("%-15s",ex->val.strConst);
-////		return 1;}
+	case conststring_e:
+		{printf(" \"%s%-12s ",ex->val.strConst,"\"");
+		return 1;}
 ////	case nil_e:
 ////		{return 1;}
 	default: return 0;
@@ -1010,40 +1014,56 @@ void printquads(){	//tiponei ta quads
 	printf("-----------------------------------------------------------------------------------------------------------------------------------\n");
 
 	while(counter < currQuad){
-			//printf("mpainei stin while\n");
+		//printf("mpainei stin while\n");
 	temp=quads+counter;
-	//printf("kanei tin temp=\n");
+		//printf("kanei tin temp=\n");
 	printf("%-14d %-15s",counter+1,get_ic_type_to_String(temp->op));
-	//if(temp != NULL){
-	//	printf("h temp eiani nyll\n");
-	//}
+
 	if(temp->result!=NULL){
-		printf("%-15s",temp->result->sym->value.varVal->name);//(temp->result);
+		//printf("mpainei sto 1o\n");
+		if(temp->op == ret){							//checks if op is return and if it is we check whats the return arg with checkexpr
+			//printf("mpainei edw gia return\n");
+			check_expr(temp->result);					//an einai arithmos tha tupwsei ton arithmo
+		}else if(temp->op == tablesetelem){				//checks if op is tablesetelem kai kanei print analoga ti einai( to exw elegxei me arithmo gia arxi)
+			//printf("mpainei edw\n");
+			printf("%-15s",temp->result->sym->value.varVal->name);				//typwnei to temp.val -> _f0
+		
+			check_expr(temp->result);
+		}else {
+			printf("%-15s",temp->result->sym->value.varVal->name);//(temp->result);
+		}
 	}
 	if(temp->arg1!=NULL){
+		//printf("mpainei sto 2o\n");
 		if(check_expr(temp->arg1)!=0 ){
 			//printf("mpaieni sto if\n");
+
 		}else{
-			//printf("mpainei sto else\n");
 			if(temp->arg1->sym!=NULL ){
+				//printf("mpainei sto edwwwwwwwww\n");
 				//printf("mpainei sto else sto ifasdsadas\n");
-				printf("%-15s",temp->arg1->sym->value.varVal->name);//(temp->result);
+
+				printf("%-14s",temp->arg1->sym->value.varVal->name);//(temp->result);
+				//printf("seg\n");
 			}
 		}
 	}
 	if(temp->arg2!=NULL){			//printf("mpaieni edw1");//print_expr(temp->arg2);
-		//printf("mpainei edw;adsdsadsadsadsa	");
+		//printf("mpainei edwadsdsadsadsads\n");
 		if(check_expr(temp->arg2)!=0){
 			//printf("mpainei edw;");
 		}else{
 			if(temp->arg2->sym!=NULL){//
-				printf("%-15s",temp->arg2->sym->value.varVal->name);//(temp->result);
+				printf("%-14s",temp->arg2->sym->value.varVal->name);//(temp->result);
 			}
 		}
 	}
 	
-	if(temp->label!=0)printf("%d\n",temp->label);
-	printf("\n");
+	if(temp->label!=0){
+		printf("%d\n",temp->label);
+	}else{
+			printf("\n");								//kanei print to enter an den uparxei label
+	}
 	counter++;	
 	}
 	

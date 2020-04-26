@@ -28,6 +28,7 @@ struct expr* t;
 struct expr* val;
 struct expr* temps;
 struct expr* indexes;
+struct SymbolTableEntry *new_temp;
 
 int la;
 
@@ -102,8 +103,8 @@ extern FILE* yyin;
 %type <unsignedVal> funcbody
 %type <exprNode> funcprefix
 %type <exprNode> funcdef
-//%type <unsignedVal> N
-//%type <unsignedval> M
+%type <unsignedVal> N
+%type <unsignedVal> M
 %type <stmtVal> stmt
 %type <stmtVal> whilestmt
 %type <exprVal> tableitem
@@ -115,7 +116,9 @@ extern FILE* yyin;
 %type <callVal> normcall
 %type <callVal> methodcall
 %type <exprVal> elist
+//%type <exprVal> elists
 %type <exprVal> indexed
+%type <exprVal> indexedelem
 %type <unsignedVal> ifprefix
 %type <unsignedVal> elseprefix
 %type <unsignedVal> whilestart
@@ -125,6 +128,8 @@ extern FILE* yyin;
 %type <stmtVal> break
 %type <stmtVal> stmts
 %type <stmtVal> returnstmt
+%type <stmtVal> forprefix
+%type <stmtVal> forstmt
 
 /*tou lew na perimenei ena sfalma shift/reduce poy einai to ifstmt*/
 %expect 1
@@ -137,16 +142,19 @@ extern FILE* yyin;
 program 		:	stmts	
 
 /*ta statements einai 0 h perissotera kai gia na to petuxoyme auto prepei na ftiaksoume allo ena kanona*/
-/*stmts			: 	stmt stmts
+stmts			: 	stmt stmts 				{
+												//$$->breakList = mergelist($1->breakList,$2->breakList);
+												//$$->contList = mergelist($1->contList,$2->contList);
+											}
 				|
-				;	*/
+				;	
 
-stmts 			: 	stmts stmt  			{
+/*stmts 			: 	stmts stmt  			{
 												//$$->breakList = mergelist($1->breakList,$2->breakList);
 												//$$->contList = mergelist($1->contList,$2->contList);
 											}
 				|	stmt 		{$$=$1;}
-				;				
+				;	*/			
 
 stmt			:	expr SEMICOLON			{printf("stmt <- expr;\n\n");}
 				|	ifstmt					{printf("stmt <- ifstmt\n\n");}
@@ -249,9 +257,19 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 																$$ ->sym = newtemp(Symtbl,scope,yylineno);
 
 																emit(if_greater,$1,$3,NULL,nextquad()+3,yylineno);
-																emit(assign,newexpr_constbool(0),NULL,$$,0,yylineno);
-																emit(jump,NULL,NULL,NULL,nextquad()+2,yylineno);
-																emit(assign,newexpr_constbool(1),NULL,$$,0,yylineno);
+																emit(jump,NULL,NULL,NULL,nextquad()+4,yylineno);		//tskir: egw to prosthesa giati den to ekane print
+																
+																temps = newexpr(constbool_e);
+																temps->val.boolConst = 0;
+																emit(assign,temps,NULL,$$,0,yylineno);					//tskir : allagi me to apo panw giati mallon to newexpr_constbool
+																//emit(assign,newexpr_constbool(0),NULL,$$,0,yylineno);		//tskir ->den leitourgei
+																//printf("print %d",temps->val.boolConst);
+																emit(jump,NULL,NULL,NULL,nextquad()+3,yylineno);		//tskir: to allaksa apo 2 se 3
+
+																t = newexpr(constbool_e);
+																t->val.boolConst = 1;
+																//emit(assign,newexpr_constbool(1),NULL,$$,0,yylineno); 		//tskir: to allaksa me to apo katw
+																emit(assign,t,NULL,$$,0,yylineno); 
 																printf("expr <- expr op expr\n");
 															}else{
 																printf("\033[1;31m");
@@ -266,11 +284,23 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 															$$ = newexpr(boolexpr_e);
 															$$ ->sym = newtemp(Symtbl,scope,yylineno);
 
+															temps = newexpr(constbool_e);
+															temps->val.boolConst = 0;
 															emit(if_greatereq,$1,$3,NULL,nextquad()+3,yylineno);
-															emit(assign,newexpr_constbool(0),NULL,$$,0,yylineno);
-															emit(jump,NULL,NULL,NULL,nextquad()+2,yylineno);
-															emit(assign,newexpr_constbool(1),NULL,$$,0,yylineno);
+															emit(jump,NULL,NULL,NULL,nextquad()+4,yylineno);		//tskir: egw to prosthesa giati den to ekane print
+															
+															emit(assign,temps,NULL,$$,0,yylineno); 	//tskir allagi apo katw m auto
+															//emit(assign,newexpr_constbool(0),NULL,$$,0,yylineno);
+
+															emit(jump,NULL,NULL,NULL,nextquad()+3,yylineno);
+
+															t = newexpr(constbool_e);
+															t->val.boolConst = 1;
+															//emit(assign,newexpr_constbool(1),NULL,$$,0,yylineno); 		//tskir: to allaksa me to apo katw
+
+															emit(assign,t,NULL,$$,0,yylineno);
 															printf("expr <- expr op expr\n");
+
 														}else{
 																printf("\033[1;31m");
 					                                        	printf("Error in line %d - This type of expr could not be used with GREATER EQUAL expr\n",yylineno);
@@ -280,14 +310,23 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 
 				|	expr LESS_THAN expr				{
 														if(check_corr_type($1)==0 && check_corr_type($3)==0){
-															$$ = newexpr(boolexpr_e);
+															/*$$ = newexpr(boolexpr_e);
 															$$ ->sym = newtemp(Symtbl,scope,yylineno);
 
+															temps = newexpr(constbool_e);
+															temps->val.boolConst = 0;
+
 															emit(if_less,$1,$3,NULL,nextquad()+3,yylineno);
-															emit(assign,newexpr_constbool(0),NULL,$$,0,yylineno);
-															emit(jump,NULL,NULL,NULL,nextquad()+2,yylineno);
-															emit(assign,newexpr_constbool(1),NULL,$$,0,yylineno);
-															printf("expr <- expr op expr\n");
+															emit(jump,NULL,NULL,NULL,nextquad()+4,yylineno);		//tskir: egw to prosthesa giati den to ekane print
+
+															emit(assign,temps,NULL,$$,0,yylineno);
+															emit(jump,NULL,NULL,NULL,nextquad()+3,yylineno);
+
+															t = newexpr(constbool_e);
+															t->val.boolConst = 1;
+															emit(assign,t,NULL,$$,0,yylineno);						//tskir: allagi 
+															printf("expr <- expr op expr\n");*/
+
 														}else{
 																printf("\033[1;31m");
 					                                        	printf("Error in line %d - This type of expr could not be used with LESS THAN expr\n",yylineno);
@@ -301,10 +340,18 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 															$$ ->sym = newtemp(Symtbl,scope,yylineno);
 
 															emit(if_lesseq,$1,$3,NULL,nextquad()+3,yylineno);
-															emit(assign,newexpr_constbool(0),NULL,$$,0,yylineno);
-															emit(jump,NULL,NULL,NULL,nextquad()+2,yylineno);
-															emit(assign,newexpr_constbool(1),NULL,$$,0,yylineno);
+															emit(jump,NULL,NULL,NULL,nextquad()+4,yylineno);		//tskir: egw to prosthesa giati den to ekane print
+
+															temps = newexpr(constbool_e);
+															temps->val.boolConst = 0;
+															emit(assign,temps,NULL,$$,0,yylineno);
+															emit(jump,NULL,NULL,NULL,nextquad()+3,yylineno);
+
+															t = newexpr(constbool_e);
+															t->val.boolConst = 1;
+															emit(assign,t,NULL,$$,0,yylineno);
 															printf("expr <- expr op expr\n");
+
 														}else{
 																printf("\033[1;31m");
 					                                        	printf("Error in line %d - This type of expr could not be used with LESS EQUAL expr\n",yylineno);
@@ -317,11 +364,20 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 															$$ = newexpr(boolexpr_e);
 															$$ ->sym = newtemp(Symtbl,scope,yylineno);
 
+															temps = newexpr(constbool_e);
+															temps->val.boolConst = 0;
+
 															emit(if_eq,$1,$3,NULL,nextquad()+3,yylineno);
-															emit(assign,newexpr_constbool(0),NULL,$$,0,yylineno);
-															emit(jump,NULL,NULL,NULL,nextquad()+2,yylineno);
-															emit(assign,newexpr_constbool(1),NULL,$$,0,yylineno);
+															emit(jump,NULL,NULL,NULL,nextquad()+4,yylineno);		//tskir: egw to prosthesa giati den to ekane print
+
+															emit(assign,temps,NULL,$$,0,yylineno);
+															emit(jump,NULL,NULL,NULL,nextquad()+3,yylineno);
+															
+															t = newexpr(constbool_e);
+															t->val.boolConst = 1;
+															emit(assign,t,NULL,$$,0,yylineno);
 															printf("expr <- expr op expr\n");
+
 														}else{
 																printf("\033[1;31m");
 					                                        	printf("Error in line %d - This type of expr could not be used with EQUAL expr\n",yylineno);
@@ -334,10 +390,17 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 															$$ = newexpr(boolexpr_e);
 															$$ ->sym = newtemp(Symtbl,scope,yylineno);
 
+															temps = newexpr(constbool_e);
+															temps->val.boolConst = 0;
+
 															emit(if_noteq,$1,$3,NULL,nextquad()+3,yylineno);
-															emit(assign,newexpr_constbool(0),NULL,$$,0,yylineno);
-															emit(jump,NULL,NULL,NULL,nextquad()+2,yylineno);
-															emit(assign,newexpr_constbool(1),NULL,$$,0,yylineno);
+															emit(jump,NULL,NULL,NULL,nextquad()+4,yylineno);		//tskir: egw to prosthesa giati den to ekane print
+
+															emit(assign,temps,NULL,$$,0,yylineno);
+															emit(jump,NULL,NULL,NULL,nextquad()+3,yylineno);
+															t = newexpr(constbool_e);
+															t->val.boolConst = 1;
+															emit(assign,t,NULL,$$,0,yylineno);
 															printf("expr <- expr op expr\n");
 														}else{
 																printf("\033[1;31m");
@@ -396,7 +459,23 @@ term			: 	LEFT_PAR expr RIGHT_PAR			{
 				|	NOT expr						{	
 														$$ = newexpr(boolexpr_e);
 														$$->sym = newtemp(Symtbl,scope,yylineno);
-														emit(not,$2,NULL,$$,0,yylineno);
+														
+														temps = newexpr(constbool_e);
+														temps->val.boolConst = 0;
+														t = newexpr(constbool_e);								//tskir added
+														t->val.boolConst = 1;
+
+														emit(if_eq,$2,temps,NULL,nextquad()+5,yylineno);		//tskir added 
+														emit(jump,NULL,NULL,NULL,nextquad()+2,yylineno);		//tskir: egw to prosthesa giati den to ekane print
+
+														emit(assign,temps,NULL,$$,0,yylineno);	//tskir added
+														emit(jump,NULL,NULL,NULL,nextquad()+3,yylineno);		//tskir added
+														
+
+														emit(assign,t,NULL,$$,0,yylineno);
+
+														//emit(not,$2,NULL,$$,0,yylineno);
+
 														printf("term <- not expr \n");
 													}
 
@@ -514,7 +593,7 @@ assignexpr		:	lvalue 	ASSIGN expr
 																	temps = emit_iftableitem(Symtbl,scope,$1,yylineno);
 																	temps->type = assignexpr_e;
 																}else{
-																printf("mpaineiedcvw\n");
+																//printf("mpaineiedcvw\n");
 																	emit(assign,$3,NULL,$1,0,yylineno);
 																	temps = newexpr(assignexpr_e);
 																	temps->sym =newtemp(Symtbl,scope,yylineno);
@@ -536,7 +615,7 @@ primary			:	lvalue						{
 													printf("primary <- call \n");
 												}
 				|	tablemake 					{
-													$$=$1;
+													$$ = $1;
 													printf("primary <- tablemake \n");
 												}
 				|	LEFT_PAR funcdef RIGHT_PAR 			{
@@ -547,7 +626,9 @@ primary			:	lvalue						{
 
 				|	const 						{	
 													$$=$1;
-													printf("to const eiani %d\n",$$->x);
+													//printf("to conststring einai %s\n",$$->val.strConst);
+													//printf("to const eiani %d\n",$$->x);
+													//printf("to const eiani %f\n",$$->y);
 													printf("primary <- const \n");
 												}
 				;
@@ -562,6 +643,11 @@ lvalue			:	ID 							{
                                                                 	printf("mpainei edw 2\n");
 														            if(check_if_lib($1,yylineno)==0 && libfunc==0){
 															            insert_variable(Symtbl,$1,scope,yylineno,check_Var_type_local(scope));
+															            new_temp=look_up_inscope($1,scope);
+																		new_temp->space=scope;
+																		new_temp->offset=currscopeoffset();
+																		inccurrscopeoffset();
+
 															            //printf("%s variable Scope %d\n",$1, scope);
 															        }
 														            
@@ -581,6 +667,11 @@ lvalue			:	ID 							{
                                                                 if(look_up($1,scope-1)==NULL){
                                                                     if(check_if_lib($1,yylineno)==0 && libfunc==0){
 															            insert_variable(Symtbl,$1,scope,yylineno,check_Var_type_local(scope));
+
+															            new_temp=look_up_inscope($1,scope);
+																		new_temp->space=scope;
+																		new_temp->offset=currscopeoffset();
+																		inccurrscopeoffset();
 															            //printf("%s variable Scope %d\n",$1, scope);
 															        }
 														            
@@ -612,6 +703,11 @@ lvalue			:	ID 							{
 													            if(look_up($1,scope-1)==NULL){
 													                if(check_if_lib($1,yylineno)==0 && libfunc==0){
 															            insert_variable(Symtbl,$1,scope,yylineno,check_Var_type_local(scope));
+
+															            new_temp=look_up_inscope($1,scope);
+																		new_temp->space=scope;
+																		new_temp->offset=currscopeoffset();
+																		inccurrscopeoffset();
 															            //printf("%s variable Scope %d\n",$1, scope);
 															  
 															        }
@@ -664,6 +760,11 @@ lvalue			:	ID 							{
 															if(check_if_lib($2,yylineno)==0){
 															printf("mpainei edw\n");
 																insert_variable(Symtbl,$2,scope,yylineno,check_Var_type_local(scope));
+
+																new_temp=look_up_inscope($1,scope);
+																new_temp->space=scope;
+																new_temp->offset=currscopeoffset();
+																inccurrscopeoffset();
 															}
 													}else if(look_up_inscope_noprint($2,scope)!=NULL ){
 														//printf("OK found locally.\n");
@@ -700,11 +801,23 @@ tableitem		:	lvalue DOT ID 								{
 																	$$ = newexpr(tableitem_e);
 																	$$->sym = $1->sym;						//diaf 10 sel 22
 																	$$->index = $3;							//the index is the expression
-																	printf("tableitem <- lvalue { expr } \n");
+																	printf("tableitem <- lvalue [ expr ] \n");
 																}
 
-				|	call DOT ID 								{printf("tableitem <- call.ID \n");}
-				|	call LEFT_SQ_BR expr RIGHT_SQ_BR 			{printf("tableitem <- call { expr } \n");}
+
+				|	call DOT ID 								{	
+																	$$ = member_item(Symtbl,scope,$1,$3,yylineno);
+																	printf("tableitem <- call.ID \n");
+																}
+
+				|	call LEFT_SQ_BR expr RIGHT_SQ_BR 			{
+																	$1 = emit_iftableitem(Symtbl,scope,$1,yylineno);
+																	$$ = newexpr(tableitem_e);
+																	$$->sym = $1->sym;						//diaf 10 sel 22
+																	$$->index = $3;							//the index is the expression
+
+																	printf("tableitem <- call [ expr ] \n");
+																}
 				;
 										/*tsekarw px tin print(x) kai an einai libfunc opws i print theloyme apla na kanei lookup sto x kai oxi insert*/
 call			:	call LEFT_PAR elist RIGHT_PAR 				{
@@ -762,22 +875,43 @@ normcall		:	LEFT_PAR elist RIGHT_PAR				{
 
 
 methodcall		:	DOUBLE_DOT ID LEFT_PAR elist RIGHT_PAR       	{
-																		$$->elist = $4;
+																		$$->elist = $elist;
 																		$$->method = 1;
 																		$$->name = $2;
+																		//$$ = make_call(Symtbl,scope,$$->elist,$4,yylineno);
 																		printf("methodcall <- ..ID ( elist )\n");
 																	}
 				;
 
-elist			:	expr														{printf("elist <- expr\n");}
-				|	expr COMMA elist														{printf("elist <- ,expr\n");}
+elist			:	expr														{	
+																					$$=$1;
+																					//$$ = make_call(Symtbl,scope,$$,$1,yylineno);
+																					printf("elist <- expr\n");
+																				}
+				|	expr COMMA elist														{
+																								
+																								$$->next = $3;
+																								$$ = $1;
+																								//$$->next = $1;
+																								//$$->next = $3;
+																								//$$ = make_call(Symtbl,scope,$1,$3,yylineno);
+																								printf("elist <- ,expr\n");
+																							}
 				|
 				;
 
-elists			:	expr
-				|	expr COMMA elists
+/*elists			:	expr 														{	
+																					$$ = $1;
+																					printf("elist <- expr\n");
+																				}
+				|	expr COMMA elists											{
+																								$$->next = $3;
+																								//$$->next = $3;
+																								printf("h timi p exei twra to $$ eiani %s\n",$$->val.varVal);
+																								printf("elist <- ,expr\n");
+																							}
 				|
-				;
+				;*/
 
 
 tablemake		: 	LEFT_SQ_BR elist RIGHT_SQ_BR			{
@@ -785,7 +919,11 @@ tablemake		: 	LEFT_SQ_BR elist RIGHT_SQ_BR			{
 																t->sym = newtemp(Symtbl,scope,yylineno);
 																emit(tablecreate,t,NULL,NULL,0,yylineno);
 																for(la=0 ; $2 ; $2=$2->next){
-																	emit(tablesetelem,t,newexpr_constnum(la++),$2,0,yylineno);
+																	//printf("mpainei edw elist\n");
+																	//emit(tablesetelem,t,newexpr_constnum(la++),$2,0,yylineno);
+																	temps = newexpr(constnum_e);					//ftiaxnw to arg1 na einai auksanomeno apo 0...+ gia toys pinakes
+																	temps->x = la++;								//gia na kanw ti leitourgia [1,2,3]
+																	emit(tablesetelem,temps,$2,t,0,yylineno); //allaksa to apo panw analoga me to print p thelw na vgalw
 																}
 																$$ = t;
 																printf("tablemake <- [ elist ]\n");
@@ -806,12 +944,23 @@ tablemake		: 	LEFT_SQ_BR elist RIGHT_SQ_BR			{
 															}
 				;
 
-indexed			:	indexedelem									{printf("indexed <- indexedelem\n");}
-				|	indexedelem COMMA indexed 					{printf("indexed <- ,indexedelem \n");}	
+indexed			:	indexedelem									{
+																	$$=$1;
+																	printf("indexed <- indexedelem\n");
+																}
+
+				|	indexedelem COMMA indexed 					{
+																	$$ = $1;
+																	$$->next = $3;
+																	printf("indexed <- ,indexedelem \n");
+																}	
 				;
 
 
-indexedelem 	:	LEFT_BR expr COLON expr RIGHT_BR 	{printf("indexedelem <- {expr : expr}\n");}
+indexedelem 	:	LEFT_BR expr COLON expr RIGHT_BR 	{	$$ = $2;
+															//$$->sym->index = $2;
+															$$->next = $4;
+															printf("indexedelem <- {expr : expr}\n");}
 				;
 
 block			:	LEFT_BR RIGHT_BR
@@ -847,7 +996,7 @@ funcprefix 		:	FUNCTION funcname
 												//diaf 10 sel 5
 												$$ = look_up_inscope_noprint($2,scope);
 												$$->value.funcVal->iaddress = nextquad();
-												emit(funcstart,$<exprVal>$,NULL,NULL,0,yylineno);
+												emit(funcstart,lvalue_expr($$),NULL,NULL,0,yylineno);
 												push(scopeoffsetStack,currscopeoffset());
 												enterscopespace();
 												resetformalargsoffset();
@@ -891,7 +1040,7 @@ funcdef			: 	funcprefix funcargs funcbody
 												int offset = pop(scopeoffsetStack);
 												restorecurrscopeoffset(offset);
 												$$ = $funcprefix;										//the function def returns the symbol
-												emit(funcend, $<exprVal>1 ,NULL,NULL,0,yylineno);
+												emit(funcend,lvalue_expr($1) ,NULL,NULL,0,yylineno);	//lvalue expr to convert the symtable * to expr*
 
 											}
 				;
@@ -905,25 +1054,41 @@ const			:	CONST_INT			{
 											printf("to consti int einai %d\n",$$->x);
 											printf("const <- CONST_INT \n");}
 				|	CONST_REAL 			{	
-											$$ = newexpr_constnum($1);
-											//printf("to consti int einai %d\n",$$->x);
+											//$$ = newexpr_constnum($1);
+											temps = newexpr(constnum_e);
+											temps->y = $1;
+											$$ = temps;
+											printf("to const double einai %f\n",temps->y);
 											printf("const <- CONST_REAL \n");
 										}
 
 				|	STRING 				{	
-											newexpr_conststring($1);
+											temps = newexpr(conststring_e);
+											temps -> val.strConst = $1;
+											$$ = temps;
+											printf("to conststring einai %s\n",$$->val.strConst);
 											printf("const <- STRING \n");
 										}
 				|	NIL  				{
-											newexpr(nil_e);
+											$$ = newexpr(nil_e);
 											printf("const <- NIL \n");
 										}
 				|	TRUE 				{
-											newexpr_constbool(1);
+											//$$ = newexpr_constbool(1);
+											temps = newexpr(constbool_e);
+											temps->val.boolConst = 0;
+											$$ = temps;
+											//printf("tempstrue == %d\n",$$->x);
+
+											
 											printf("const <- TRUE \n");
 										}
 				|	FALSE 				{
-											newexpr_constbool(0);
+											//$$ = newexpr_constbool(0);
+											t = newexpr(constbool_e);
+											t->val.boolConst = 1;
+											$$ = t;
+											//printf("tempsfalse == %d\n",$$->x);
 											printf("const <- FALSE \n");
 										}
 				;
@@ -1039,8 +1204,10 @@ idlists			:	ID 										{if(look_up_inscope_noprint($1,scope)==NULL){
 				|   IF LEFT_PAR expr RIGHT_PAR stmt ELSE stmt {printf("ifstmt <- if ( expr ) stmt \n");}
 				;*/
 
-ifprefix		:	IF LEFT_PAR expr RIGHT_PAR			{
-															emit(if_eq,$3,newexpr_constbool(1),NULL,nextquad()+2,yylineno);
+ifprefix		:	IF LEFT_PAR expr RIGHT_PAR			{	
+															temps = newexpr(constbool_e);
+															temps->x = 1;
+															emit(if_eq,$3,temps,NULL,nextquad()+3,yylineno);
 															$$ = nextquad();
 															emit(jump,NULL,NULL,0,0,yylineno);
 														}
@@ -1053,7 +1220,7 @@ elseprefix		:	ELSE 								{
 				;
 
 ifstmt 			:	ifprefix stmt 						{
-															patchlabel($1,nextquad());
+															patchlabel($1,nextquad()+1);							//tskir : t allaksa gia na tupwnei 5 sto jump
 														}
 
 				|	ifprefix stmt elseprefix stmt 		{	//diaf 11 sel 12
@@ -1088,7 +1255,7 @@ break 			: 	BREAK SEMICOLON				{
 continue 		: 	CONTINUE SEMICOLON			{
 				                                    if(loop_signal==0 && scope==0){
 				                                   		printf("\033[1;31m");
-				                                        printf("Error in line %d - Use of 'break' while not in a loop\n",yylineno);
+				                                        printf("Error in line %d - Use of 'continue' while not in a loop\n",yylineno);
 				                                        printf("\033[0m");
 				                                    }
 				                                    make_stmt($$);
@@ -1113,15 +1280,40 @@ whilecond 		:  	LEFT_PAR expr RIGHT_PAR				{
 whilestmt 		:	whilestart whilecond {loop_signal++;} loopstmt {loop_signal--;}					{ 			//sto $3 evgaze oti den exei ginei declare o typos
 																											emit(jump,NULL,NULL,$<exprVal>1,0,yylineno);
 																											patchlabel($2,nextquad());
-																											patchlist($4->breakList,nextquad());
-																											patchlist($4->contList,$1);		
+																											//patchlist($4->breakList,nextquad());
+																											//patchlist($4->contList,$1);		
 																									}
 				;				
 
 				
 
-forstmt			:	FOR LEFT_PAR elist SEMICOLON expr SEMICOLON elist RIGHT_PAR {loop_signal++;} stmt {loop_signal--;} {printf("forstmt <- for ( elist; expr; elist ) stmt \n");}
+/*forstmt			:	FOR LEFT_PAR elist SEMICOLON expr SEMICOLON elist RIGHT_PAR {loop_signal++;} stmt {loop_signal--;} {printf("forstmt <- for ( elist; expr; elist ) stmt \n");}
+				;*/
+
+N 				: 	{$$ = nextquad(); emit(jump,NULL,NULL,0,0,yylineno);}
 				;
+
+M 				:	{$$ = nextquad();}
+				;
+
+
+forprefix		: 		FOR LEFT_PAR elist SEMICOLON M expr SEMICOLON 					{
+																							$$->test = $5;
+																							$$->enter = nextquad();
+																							emit(if_eq,$6,newexpr_constbool(1),0,0,yylineno);
+																						}
+				;
+
+forstmt 			: 		forprefix N elist RIGHT_PAR N loopstmt N 							{
+																							patchlabel($1->enter,$5+1);
+																							patchlabel($2,nextquad());
+																							patchlabel($5,$1->test);
+																							patchlabel($7,$2+1);
+
+																							patchlist($6->breakList,nextquad());
+																							patchlist($6->contList,$2+1);
+																						}
+					;
 
 returnstmt		:	RETURN SEMICOLON 			{
 													emit(ret,NULL,NULL,NULL,0,yylineno);
