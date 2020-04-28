@@ -103,6 +103,7 @@ extern FILE* yyin;
 %type <unsignedVal> funcbody
 %type <exprNode> funcprefix
 %type <exprNode> funcdef
+%type <unsignedVal> funcblockend
 %type <unsignedVal> N
 %type <unsignedVal> M
 %type <stmtVal> stmt
@@ -587,7 +588,7 @@ assignexpr		:	lvalue 	ASSIGN expr
 																}}}
 
 																if($1->type == tableitem_e ){
-																printf("mpaieni edwdwwd\n");
+																//printf("mpaieni edwdwwd\n");
 																	//emit(tablesetelem,$1,$1->index,$3,0,yylineno);		//lvalue[index] =expr allaksa autp edwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww***** gia toys pinakes
 																	emit(tablesetelem,$1->index,$3,$1,0,yylineno);
 																	temps = emit_iftableitem(Symtbl,scope,$1,yylineno);
@@ -889,15 +890,15 @@ elist			:	expr														{
 																					printf("elist <- expr\n");
 																				}
 				|	expr COMMA elist														{
-																								
-																								$$->next = $3;
 																								$$ = $1;
+																								$$->next = $3;
+																								
 																								//$$->next = $1;
 																								//$$->next = $3;
 																								//$$ = make_call(Symtbl,scope,$1,$3,yylineno);
 																								printf("elist <- ,expr\n");
 																							}
-				|
+				|						{$$=NULL;}							//tskir : added because we must check when we create the table if its null to not make a tablesetelem
 				;
 
 /*elists			:	expr 														{	
@@ -918,12 +919,14 @@ tablemake		: 	LEFT_SQ_BR elist RIGHT_SQ_BR			{
 																t = newexpr(newtable_e);
 																t->sym = newtemp(Symtbl,scope,yylineno);
 																emit(tablecreate,t,NULL,NULL,0,yylineno);
-																for(la=0 ; $2 ; $2=$2->next){
-																	//printf("mpainei edw elist\n");
-																	//emit(tablesetelem,t,newexpr_constnum(la++),$2,0,yylineno);
-																	temps = newexpr(constnum_e);					//ftiaxnw to arg1 na einai auksanomeno apo 0...+ gia toys pinakes
-																	temps->x = la++;								//gia na kanw ti leitourgia [1,2,3]
-																	emit(tablesetelem,temps,$2,t,0,yylineno); //allaksa to apo panw analoga me to print p thelw na vgalw
+																if($2!=NULL){
+																	for(la=0 ; $2 ; $2=$2->next){
+																		//printf("mpainei edw elist\n");
+																		//emit(tablesetelem,t,newexpr_constnum(la++),$2,0,yylineno);
+																		temps = newexpr(constnum_e);					//ftiaxnw to arg1 na einai auksanomeno apo 0...+ gia toys pinakes
+																		temps->x = la++;								//gia na kanw ti leitourgia [1,2,3]
+																		emit(tablesetelem,temps,$2,t,0,yylineno); //allaksa to apo panw analoga me to print p thelw na vgalw
+																	}
 																}
 																$$ = t;
 																printf("tablemake <- [ elist ]\n");
@@ -935,7 +938,8 @@ tablemake		: 	LEFT_SQ_BR elist RIGHT_SQ_BR			{
 																emit(tablecreate,t,NULL,NULL,0,yylineno);
 																indexes = $2;
 																while(indexes!=NULL){
-																	emit(tablesetelem,t,indexes,indexes->index,0,yylineno);
+																	//emit(tablesetelem,t,indexes,indexes->index,0,yylineno);
+																	emit(tablesetelem,indexes,indexes->index,t,0,yylineno);				//tskir to allaksa giati eftiaxa to indexeddelem
 																	indexes = indexes->next;
 																}
 																$$=t;	
@@ -958,8 +962,8 @@ indexed			:	indexedelem									{
 
 
 indexedelem 	:	LEFT_BR expr COLON expr RIGHT_BR 	{	$$ = $2;
-															//$$->sym->index = $2;
-															$$->next = $4;
+															$$->index = $4;							//to allaksa apo to apo katw giati den ekane print ara den epairne tin timi to index
+															//$$->next = $4;
 															printf("indexedelem <- {expr : expr}\n");}
 				;
 
@@ -971,6 +975,23 @@ block			:	LEFT_BR RIGHT_BR
 funcname		: ID 						{$$ = $1;}
 				|							{$$ = randomfunc();}
 				;
+
+funcblockstart 	: 				{
+
+									push(loopcounterstack,loopcounter);
+									loopcounter=0;
+								}
+				;
+
+funcblockend  	:				{
+									
+									loopcounter = pop(loopcounterstack);
+									$$ = nextquad();
+								}
+				;
+
+
+
 funcprefix 		:	FUNCTION funcname
 											{
 
@@ -996,6 +1017,7 @@ funcprefix 		:	FUNCTION funcname
 												//diaf 10 sel 5
 												$$ = look_up_inscope_noprint($2,scope);
 												$$->value.funcVal->iaddress = nextquad();
+												emit(jump,NULL,NULL,NULL,0,yylineno);						//tskir : added gia na kanei print to jump prin to funcstart
 												emit(funcstart,lvalue_expr($$),NULL,NULL,0,yylineno);
 												push(scopeoffsetStack,currscopeoffset());
 												enterscopespace();
@@ -1003,16 +1025,6 @@ funcprefix 		:	FUNCTION funcname
 											}
 				;
 
-funcblockstart 	: 				{
-									push(loopcounterstack,loopcounter);
-									loopcounter=0;
-								}
-				;
-
-funcblockend  	:				{
-									loopcounter = pop(loopcounterstack);
-								}
-				;
 
 
 
@@ -1027,7 +1039,7 @@ funcargs		:	LEFT_PAR {++scope;} idlist {--scope;}RIGHT_PAR funcblockstart
 funcbody		: 	block funcblockend
 											{--check_if_open_func;--block_func_signal;
 												$$ = currscopeoffset();				//extract totalLocals 
-												exitscopespace();
+												exitscopespace();	
 											}
 				;
 
@@ -1224,8 +1236,8 @@ ifstmt 			:	ifprefix stmt 						{
 														}
 
 				|	ifprefix stmt elseprefix stmt 		{	//diaf 11 sel 12
-															patchlabel($1,$3+1);
-															patchlabel($3,nextquad());
+															patchlabel($1,$3+2);
+															patchlabel($3,nextquad()+1);
 														}
 				;
 
@@ -1300,11 +1312,13 @@ M 				:	{$$ = nextquad();}
 forprefix		: 		FOR LEFT_PAR elist SEMICOLON M expr SEMICOLON 					{
 																							$$->test = $5;
 																							$$->enter = nextquad();
-																							emit(if_eq,$6,newexpr_constbool(1),0,0,yylineno);
+																							temps = newexpr(constbool_e);
+																							temps->val.boolConst = 1;
+																							emit(if_eq,$6,temps,0,0,yylineno);
 																						}
 				;
 
-forstmt 			: 		forprefix N elist RIGHT_PAR N loopstmt N 							{
+forstmt 			: 		forprefix N elist RIGHT_PAR N loopstmt N 					{
 																							patchlabel($1->enter,$5+1);
 																							patchlabel($2,nextquad());
 																							patchlabel($5,$1->test);

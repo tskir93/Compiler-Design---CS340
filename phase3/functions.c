@@ -619,7 +619,7 @@ SymbolTableEntry *look_up_inscope_noprint(const char *name,int scope)
 
 
 //diaf 9 sel 38
-void expand(void){
+void expand(void){	//megalonoume ton dinamiko pinaka mas
 	assert (total == currQuad);
 	quad* p = (quad*)malloc(NEW_SIZE);
 	if(quads){
@@ -631,7 +631,7 @@ void expand(void){
 }
 
 //diaf 9 sel 38
-void emit(
+void emit(	//paragogi mias neas entolis
 	iopcode		op,
 	expr*		arg1,
 	expr*		arg2,
@@ -653,7 +653,7 @@ void emit(
 }
 
 //diaf 9 sel 44
-char *newtempname(){
+char *newtempname(){	//paragei ena neo onoma xrhsimopoiontas ton tempcounter
 	char *out = (char*)malloc(sizeof(char));
 	sprintf(out, "%s%d", name, tempcounter) ;
 	tempcounter++;
@@ -668,7 +668,7 @@ void resettemp(){
 
 //diaf 9 sel 44-45
 //den kserw ti tipo prepei na exei nomizw symboltable entry
-SymbolTableEntry *newtemp(SymTable *Symtable,unsigned int scope, unsigned int line){
+SymbolTableEntry *newtemp(SymTable *Symtable,unsigned int scope, unsigned int line){	//epistrefei eite mia nea krifi metabliti h mia idi diathesimi me to onoma newtempname
 	char *name = newtempname();
 	SymbolTableEntry *sym = look_up_inscope_noprint(name,scope);
 	
@@ -684,7 +684,7 @@ SymbolTableEntry *newtemp(SymTable *Symtable,unsigned int scope, unsigned int li
 	}
 }
 
- scopespace_t currscopespace(void){
+ scopespace_t currscopespace(void){	//anagnorizoume to paron scope
 	if(scopeSpaceCounter == 1){
 		return programvar;
 	}else if(scopeSpaceCounter % 2 == 0){
@@ -694,7 +694,7 @@ SymbolTableEntry *newtemp(SymTable *Symtable,unsigned int scope, unsigned int li
 	}
 }
 
-unsigned currscopeoffset(void){
+unsigned currscopeoffset(void){	//gia kathe scope space diatiro ksexoristo offset
 	switch (currscopespace()){
 		case programvar 	: 	return programVarOffset;
 		case functionlocal 	:	return functionLocalOffset;
@@ -703,7 +703,7 @@ unsigned currscopeoffset(void){
 	}
 }
 
-void inccurrscopeoffset(void){
+void inccurrscopeoffset(void){	//me kathe nea dilosi metablitis ayksanetai to offset to sugekrimenou scope
 	switch(currscopespace()){
 		case programvar 	: ++programVarOffset;break;
 		case functionlocal 	: ++functionLocalOffset;break;
@@ -770,7 +770,7 @@ void patchlabel(unsigned quadNo,unsigned label){
 	quads[quadNo].label = label;
 }
 
-expr* lvalue_expr (SymbolTableEntry* sym){
+expr* lvalue_expr (SymbolTableEntry* sym){	//ftiaxnoume  ena lvalue_exp apo ena sym
 	assert(sym);
 	expr* e = (expr*)malloc (sizeof(expr));
 	memset(e,0,sizeof(expr));
@@ -805,7 +805,7 @@ expr* newexpr_conststring(char *s){
 }
 
 //diaf10 sel 24
-expr* emit_iftableitem(SymTable *Symtable,unsigned int scope,expr* e,unsigned line){
+expr* emit_iftableitem(SymTable *Symtable,unsigned int scope,expr* e,unsigned line){	//otan exoume lvalue.id opou to lvalue einai st.pnk paragoume tin entoli pou pairnei auto to stoixeio
 	if(e->type != tableitem_e){
 		return e;
 	}else{
@@ -826,7 +826,7 @@ expr* member_item(SymTable *Symtable,unsigned int scope,expr* lvalue, char* name
 }
 
 //diaf10 sel 27
-expr* make_call(SymTable *Symtable,unsigned int scope,expr *lvalue, expr* reversed_elist,unsigned line){
+expr* make_call(SymTable *Symtable,unsigned int scope,expr *lvalue, expr* reversed_elist,unsigned line){	//kaloume mia sinartisi
 	expr* func = emit_iftableitem(Symtable,scope,lvalue,line);
 	while(reversed_elist){
 		emit(param,reversed_elist,NULL,NULL,0,line);
@@ -853,7 +853,7 @@ expr* newexpr_constbool(unsigned int b){
 
 
 
-int check_arith(expr *e){
+int check_arith(expr *e){	//elegxoume gia tin sosti xrisi ekfraseon se arithmitikes praxeis
 	if(	e->type == constbool_e 	||
 		e->type == conststring_e||
 		e->type == nil_e		||
@@ -1024,7 +1024,7 @@ void printquads(){	//tiponei ta quads
 		if(temp->op == ret){							//checks if op is return and if it is we check whats the return arg with checkexpr
 			//printf("mpainei edw gia return\n");
 			check_expr(temp->result);					//an einai arithmos tha tupwsei ton arithmo
-		}else if(temp->op == tablesetelem){				//checks if op is tablesetelem kai kanei print analoga ti einai( to exw elegxei me arithmo gia arxi)
+		}else if(temp->op == tablesetelem && temp->result->type!=newtable_e){				//checks if op is tablesetelem kai kanei print analoga ti einai( to exw elegxei me arithmo gia arxi)
 			//printf("mpainei edw\n");
 			printf("%-15s",temp->result->sym->value.varVal->name);				//typwnei to temp.val -> _f0
 		
