@@ -887,11 +887,10 @@ int check_corr_type(expr *e){
 }
 
 //diaf 11 sel 26
-void patchlist(int list,int label){
+void patchlist(intlist_node *list,int label){
 	while(list){
-		int next = quads[list].label;
-		quads[list].label = label;
-		list = next;
+		patchlabel(list->val, nextquad());
+		list = list->next;	
 	}
 }
 
@@ -963,8 +962,8 @@ switch(ex->type){
 	//	{printf("%-15s",ex->val.strConst);
 	//	return 1;}
 	//case tableitem_e:
-		//printf("mpainei edw gia tableitem\n");
-	//	{//printf("%-15s",ex->val.strConst);
+	//	printf("mpainei edw gia tableitem\n");
+	//	{printf("%-15s",ex->val.strConst);
 	//	return 1;}
 	case programfunc_e:
 		//printf("mpainei edw programfunc\n");
@@ -987,6 +986,10 @@ switch(ex->type){
 	/*case newtable_e:
 		{printf("%-15s",ex->val.strConst);
 		return 1;}*/
+	case constnum_ereal:
+		{printf("%-15.2f",ex->y);
+		//printf("mpainei3\n");
+		return 1;}
 	case constnum_e:
 		{printf("%-15d",ex->x);
 		//printf("mpainei3\n");
@@ -1065,8 +1068,51 @@ void printquads(){	//tiponei ta quads
 			printf("\n");								//kanei print to enter an den uparxei label
 	}
 	counter++;	
-	}
+	}	
 	
 }
 
+void pushlist(intList* head,int val){ //bazo ena item sto telos tis listas
+	intlist_node * current = malloc(sizeof( intlist_node));
+	current->val=val;
+	current->next=head->List;
+	head->List=current;
+	
+	return;
+	
+}
 
+/*int pop(intList ** head) { //bgazo to proto stoixeio tis listas 
+    int retval = -1;
+	intlist_node * current=head;
+	while(current->next !=NULL){
+		current=current->next;
+	}
+    intlist * next_node = NULL;
+
+    if (*head == NULL) {
+        return -1;
+    }
+
+    next_node = (*head)->next;
+    retval = (*head)->val;
+    free(*head);
+    *head = next_node;
+
+    return retval;
+}
+*/
+
+int isEmpty(intList** list) //epistrefei an i lista einai adeia 1 allios 0
+{
+    
+    if(*list == NULL) return 1;
+	else return 0;
+}
+
+int getFirst(intList * list){ //epistrefo tin timi tou prvtou stoixeiou
+	if(list!=NULL){
+		return list->List->val;
+	}
+	return 0;
+}

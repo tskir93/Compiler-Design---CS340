@@ -11,9 +11,18 @@
 struct stack* scopeoffsetStack ;
 struct stack* loopcounterstack;
 
+typedef struct intlist_node{ //struct gia breaklist kai continuelist
+	int val;
+	struct intlist_node * next;
+}intlist_node;
+
+typedef struct intList{
+	struct intlist_node* List;
+}intList;
+
 typedef struct stmt_t {
-	int breakList;						//periexei toys arithmoys olwn twn quads poy kathena antistoixei se unfinished jump logw kapiou break p periexetai sto stmt
-	int contList;						//periexei toyw arithmoys olwn twn quads poy kathena antistoixei se unfinished jump logw kapioy continue p periexetai sto stmt
+	intlist_node * breakList;						//periexei toys arithmoys olwn twn quads poy kathena antistoixei se unfinished jump logw kapiou break p periexetai sto stmt
+	intlist_node	* contList;						//periexei toyw arithmoys olwn twn quads poy kathena antistoixei se unfinished jump logw kapioy continue p periexetai sto stmt
 	unsigned enter;
 	unsigned test;
 
@@ -118,6 +127,7 @@ typedef enum expr_t{
 	assignexpr_e,
 	newtable_e,
 	constnum_e,
+	constnum_ereal,
 	constbool_e,
 	conststring_e,
 	nil_e
@@ -227,7 +237,7 @@ int check_arith(expr *e);
 int check_corr_type(expr *e);
 
 //diaf 11 sel 26
-void patchlist(int list,int label);
+void patchlist(intlist_node *list,int label);
 
 void make_stmt(stmt_t* s);
 	
@@ -240,4 +250,6 @@ int check_expr(expr *ex);
 const char* get_ic_type_to_String(iopcode type);
 
 void printquads();
+
+
 
