@@ -136,6 +136,7 @@ extern FILE* yyin;
 %type <stmtVal> returnstmt
 %type <stmtVal> forprefix
 %type <stmtVal> forstmt
+%type <stmtVal> block
 
 /*tou lew na perimenei ena sfalma shift/reduce poy einai to ifstmt*/
 %expect 1
@@ -148,7 +149,8 @@ extern FILE* yyin;
 program 		:	stmts	
 
 /*ta statements einai 0 h perissotera kai gia na to petuxoyme auto prepei na ftiaksoume allo ena kanona*/
-stmts			: 	stmt stmts 				{
+stmts			: 	stmt stmts 				{	
+											
 												//$$->breakList = mergelist($1->breakList,$2->breakList);
 												//$$->contList = mergelist($1->contList,$2->contList);
 											}
@@ -169,7 +171,10 @@ stmt			:	expr SEMICOLON			{printf("stmt <- expr;\n\n");}
 				|	returnstmt				{printf("stmt <- returnstmt\n\n");}
 				|	break 					{}
 				|	continue 				{}
-				|	block					{printf("stmt <- block\n\n");}
+				|	block					{	
+												$$=$1;
+												printf("stmt <- block\n\n");
+											}
 				|	funcdef					{printf("stmt <- funcdef\n\n");}
 				| 	SEMICOLON				{printf("stmt <- ;\n\n");}
 				;
@@ -685,7 +690,7 @@ term			: 	LEFT_PAR expr RIGHT_PAR			{
 assignexpr		:	lvalue 	ASSIGN expr				 
 															{	if(checkglob==0){
 																	if($1->sym!=NULL){
-																		//printf("mpika mesa k to sym name eiani %s \n",$1->sym->value.varVal->name);
+																		printf("mpika mesa k to sym name eiani %s \n",$1->sym->value.varVal->name);
 																		if($1->type==programfunc_e || $1->type==libraryfunc_e){
 																					printf("\033[1;31m");
 																					printf("Error in line %d - ASSIGN action could not be used with Functions\n",yylineno);
@@ -693,19 +698,22 @@ assignexpr		:	lvalue 	ASSIGN expr
 																}}}
 
 																if($1->type == tableitem_e ){
-																//printf("mpaieni edwdwwd\n");
+																printf("mpaieni edwdwwd\n");
 																	//emit(tablesetelem,$1,$1->index,$3,0,yylineno);		//lvalue[index] =expr allaksa autp  gia toys pinakes
 																	emit(tablesetelem,$1->index,$3,$1,0,yylineno);
 																	temps = emit_iftableitem(Symtbl,scope,$1,yylineno);
 																	temps->type = assignexpr_e;
 																}else{
-																//printf("mpaineiedcvw\n");
+																printf("mpaineiedcvw\n");
 																	emit(assign,$3,NULL,$1,0,yylineno);
 																	temps = newexpr(assignexpr_e);
 																	temps->sym =newtemp(Symtbl,scope,yylineno);
 																	emit(assign,$1,NULL,temps,0,yylineno);
 																}
 																$$=temps;
+																//printf("to expr eiani $$: %s",$$->sym->value.varVal->name);
+																//printf("to expr eiani lvalue: %s",$1->sym->value.varVal->name);
+																//printf("to expr eiani epxr: %s",$3->sym->value.varVal->name);
 																printf("assignexpr <- lvalue = expr \n");
 															}
 
@@ -746,7 +754,7 @@ lvalue			:	ID 							{
                                                         	
                                                             if(check_if_open_func==0){
                                                                 if(look_up($1,scope-1)==NULL){
-                                                                	printf("mpainei edw 2\n");
+                                                                	//printf("mpainei edw 2\n");
 														            if(check_if_lib($1,yylineno)==0 && libfunc==0){
 															            insert_variable(Symtbl,$1,scope,yylineno,check_Var_type_local(scope));
 															            new_temp=look_up_inscope($1,scope);
@@ -760,12 +768,14 @@ lvalue			:	ID 							{
 														        
 														        }else if(look_up($1,scope-1)!=NULL){
 														            if(look_up($1,scope-1)->type==GLOBAL){
+														           		 $$ = lvalue_expr(look_up_inscope_noprint($1,scope-1));
 														                //printf("Ok %s is a global var\n",$1);
 														                //printSymtable();
 														            }else if(look_up($1,scope-1)->type==LOCALE){
+														            	$$ = lvalue_expr(look_up_inscope_noprint($1,scope-1));
 														                //printf("Ok %s refers to the previous variable and is visible\n",$1);
 														            }
-														            
+														           //printf("mpainei edw 3\n");
 														        }
 														        
                                                             }else if(check_if_open_func!=0){
@@ -778,12 +788,13 @@ lvalue			:	ID 							{
 																		new_temp->space=scope;
 																		new_temp->offset=currscopeoffset();
 																		inccurrscopeoffset();
+																		//printf("mpainei edw 4\n");
 															            //printf("%s variable Scope %d\n",$1, scope);
 															        }
 														            
 														            
 														        }else if(look_up($1,scope-1)!=NULL){
-														        printf("mpainei edw 5\n");
+														        //printf("mpainei edw 5\n");
 														            if(block_func_signal<=1){
 
 														            }else if(block_func_signal>1){
@@ -894,6 +905,7 @@ lvalue			:	ID 							{
 				|	tableitem 						{
 														$$ = $1;
 														printf("lvalue <-  tableitem\n");
+														//printf("petaei seg;\n");
 													}	
 				;
 
@@ -912,6 +924,7 @@ tableitem		:	lvalue DOT ID 								{
 
 
 				|	call DOT ID 								{	
+
 																	$$ = member_item(Symtbl,scope,$1,$3,yylineno);
 																	printf("tableitem <- call.ID \n");
 																}
@@ -934,6 +947,7 @@ call			:	call LEFT_PAR elist RIGHT_PAR 				{
 
 				|	lvalue callsuffix
 																	{	//allaksa to lvalue call suffix k ton elegxo apo katw ton efera edw
+																		
 																		if(check_type($1->sym)==1){
 																				if(check_if_lib_noprint($1->sym->value.funcVal->name)==1){				//phase 3 to bala se sxolia
 										   												libfunc=1;
@@ -941,6 +955,7 @@ call			:	call LEFT_PAR elist RIGHT_PAR 				{
 																				}
 																		}
 																		//sel 28 diaf 10
+
 																		$1 = emit_iftableitem(Symtbl,scope,$1,yylineno);
 																		if($2->method){
 																			t = $1;
@@ -973,6 +988,8 @@ callsuffix		:	normcall								{
 				;	
 
 normcall		:	LEFT_PAR elist RIGHT_PAR				{
+																//printf("seg edw\n");
+																$$ = (struct call*)malloc(sizeof(struct call));
 																$$->elist = $2;
 																$$->method = 0;
 																$$->name = NULL;
@@ -982,26 +999,21 @@ normcall		:	LEFT_PAR elist RIGHT_PAR				{
 
 
 methodcall		:	DOUBLE_DOT ID LEFT_PAR elist RIGHT_PAR       	{
+																		$$ = (struct call*)malloc(sizeof(struct call));
 																		$$->elist = $4;
 																		$$->method = 1;
 																		$$->name = $2;
-																		//$$ = make_call(Symtbl,scope,$$->elist,$4,yylineno);
 																		printf("methodcall <- ..ID ( elist )\n");
 																	}
 				;
 
 elist			:	expr														{	
 																					$$=$1;
-																					//$$ = make_call(Symtbl,scope,$$,$1,yylineno);
 																					printf("elist <- expr\n");
 																				}
 				|	expr COMMA elist														{
 																								$$ = $1;
 																								$$->next = $3;
-																								
-																								//$$->next = $1;
-																								//$$->next = $3;
-																								//$$ = make_call(Symtbl,scope,$1,$3,yylineno);
 																								printf("elist <- ,expr\n");
 																							}
 				|						{$$=NULL;}							//tskir : added because we must check when we create the table if its null to not make a tablesetelem
@@ -1012,8 +1024,8 @@ elist			:	expr														{
 																					printf("elist <- expr\n");
 																				}
 				|	expr COMMA elists											{
+																								$$ = $1;
 																								$$->next = $3;
-																								//$$->next = $3;
 																								printf("h timi p exei twra to $$ eiani %s\n",$$->val.varVal);
 																								printf("elist <- ,expr\n");
 																							}
@@ -1073,8 +1085,20 @@ indexedelem 	:	LEFT_BR expr COLON expr RIGHT_BR 	{	$$ = $2;
 															printf("indexedelem <- {expr : expr}\n");}
 				;
 
-block			:	LEFT_BR RIGHT_BR
-				|	LEFT_BR{++scope;} stmt stmts RIGHT_BR{;hide(scope--);} 				{printf("block <- { stmt }\n");}	
+block			:	LEFT_BR RIGHT_BR 													{$$=NULL;}
+				|	LEFT_BR{++scope;}stmt stmts RIGHT_BR{;hide(scope--);} 				{	
+																							if($3==NULL){
+																								$$ = $4;
+																								printf("mpike sto $3=NULL\n");
+																							}else if($4 == NULL){
+																								$$=$3;
+																								printf("mpike sto $4=NULL\n");
+																								//printf("to $$ einai = %s\n");
+																							}
+																							
+																							//$$->next = $4;
+																							printf("block <- { stmt }\n");
+																						}	
 				;
 
 
@@ -1143,7 +1167,7 @@ funcargs		:	LEFT_PAR {++scope;} idlist {--scope;}RIGHT_PAR funcblockstart
 
 
 funcbody		: 	block funcblockend
-											{--check_if_open_func;--block_func_signal;
+											{	--check_if_open_func;--block_func_signal;
 												$$ = currscopeoffset();				//extract totalLocals 
 												exitscopespace();	
 											}
@@ -1184,7 +1208,7 @@ const			:	CONST_INT			{
 											temps = newexpr(conststring_e);
 											temps -> val.strConst = $1;
 											$$ = temps;
-											printf("to conststring einai %s\n",$$->val.strConst);
+											//printf("to conststring einai %s\n",$$->val.strConst);
 											printf("const <- STRING \n");
 										}
 				|	NIL  				{
@@ -1359,35 +1383,31 @@ loopend 		:	{--loopcounter;}
 loopstmt 		:	loopstart stmt loopend {$$ = $2;}
 
 break 			: 	BREAK SEMICOLON				{
+													$$ = (struct stmt_t*)malloc(sizeof(struct stmt_t));
+				                                  	make_stmt($$);
 				                                    if(loop_signal==0 && scope==0){
 				                                    	printf("\033[1;31m");
 				                                        printf("Error in line %d - Use of 'break' while not in a loop\n",yylineno);
 				                                        printf("\033[0m");
+				                                    }else{                                 
+												  		pushlist(breaklist_head,nextquad());
+				                                    	emit(jump,NULL,NULL,NULL,0,yylineno);
+				                                    	printf("stmt <- break;\n\n");
 				                                    }
-				                                  
-				                                  //	pushlist(breaklist_head,nextquad());
-
-				                                  	$$ = (struct stmt_t*)malloc(sizeof(struct stmt_t));
-				                                  	make_stmt($$);
-												  	pushlist(breaklist_head,nextquad());
-				                                    emit(jump,NULL,NULL,NULL,0,yylineno);
-
-				                                    printf("stmt <- break;\n\n");
 				                                }
 
 continue 		: 	CONTINUE SEMICOLON			{
+													$$ = (struct stmt_t*)malloc(sizeof(struct stmt_t));
+				                                  	make_stmt($$);
 				                                    if(loop_signal==0 && scope==0){
 				                                   		printf("\033[1;31m");
 				                                        printf("Error in line %d - Use of 'continue' while not in a loop\n",yylineno);
 				                                        printf("\033[0m");
-				                                    }
-
-				                                    $$ = (struct stmt_t*)malloc(sizeof(struct stmt_t));
-				                                  	make_stmt($$);
-
-				                                    pushlist(contlist_head,nextquad());
-				                                    emit(jump,NULL,NULL,NULL,0,yylineno);
-				                                    printf("stmt <- continue;\n\n");
+				                                    }else{
+					                                    pushlist(contlist_head,nextquad());
+					                                    emit(jump,NULL,NULL,NULL,0,yylineno);
+					                                    printf("stmt <- continue;\n\n");
+													}
 				                                }
 
 
@@ -1397,23 +1417,23 @@ whilestart		: WHILE 								{
 				;
 
 whilecond 		:  	LEFT_PAR expr RIGHT_PAR				{
-															emit(if_eq,$2,newexpr_constbool(1),NULL,nextquad()+2,yylineno);
+															emit(if_eq,$2,newexpr_constbool(0),NULL,nextquad()+3,yylineno);
 															$$ = nextquad();
 															emit(jump,NULL,NULL,0,0,yylineno);
 														}
 				;
 
 whilestmt 		:	whilestart whilecond {loop_signal++;} loopstmt {loop_signal--;}					{ 			//sto $3 evgaze oti den exei ginei declare o typos
-																											emit(jump,NULL,NULL,$<exprVal>1,0,yylineno);
-																											patchlabel($2,nextquad());
+																											emit(jump,NULL,NULL,NULL,$1+1,yylineno);
+																											patchlabel($2,nextquad()+1);
 																											if(isEmpty(breaklist_head)!=0){
 																												patchlabel(getFirst(breaklist_head),nextquad());	
 																											}
 																											if(isEmpty(contlist_head)!=0){
-																												patchlabel(getFirst(breaklist_head),$<unsignedVal>1);	
+																												patchlabel(getFirst(breaklist_head),$1);	
 																											}
-																											$$ = $4;
-																											//patchlist($4->contList,$1);		
+																											//patchlist($4->contList,$1);
+																											//pushlist($4->contList,$1);		
 																									}
 				;				
 
@@ -1422,7 +1442,7 @@ whilestmt 		:	whilestart whilecond {loop_signal++;} loopstmt {loop_signal--;}			
 /*forstmt			:	FOR LEFT_PAR elist SEMICOLON expr SEMICOLON elist RIGHT_PAR {loop_signal++;} stmt {loop_signal--;} {printf("forstmt <- for ( elist; expr; elist ) stmt \n");}
 				;*/
 
-N 				: 	{$$ = nextquad(); emit(jump,NULL,NULL,0,0,yylineno);}
+N 				: 	{$$ = nextquad(); emit(jump,NULL,NULL,0,0,yylineno);}	//paragei ena unfinished jump
 				;
 
 M 				:	{$$ = nextquad();}
@@ -1441,30 +1461,46 @@ forprefix		: 		FOR LEFT_PAR elist SEMICOLON M expr SEMICOLON 					{
 				;
 
 forstmt 			: 		forprefix N elist RIGHT_PAR N loopstmt N 					{
-																							patchlabel($1->enter,$5+2);
-																							patchlabel($2,nextquad()+1);
-																							patchlabel($5,$1->test+1);
-																							patchlabel($7,$2+2);
+																							patchlabel($1->enter,$5+2);		//true jump
+																							patchlabel($2,nextquad()+1);	//false jump
+																							patchlabel($5,$1->test+1);		//loop jump
+																							patchlabel($7,$2+2);			//closure jump
 
-																							//if(getFirst(breaklist_head)!=0){
-																							//	patchlabel(getFirst(breaklist_head),nextquad());	
-																							//	}
-																							//if(isEmpty(contlist_head)!=0){
-																							//	patchlabel(getFirst(contlist_head),$<unsignedVal>2+1);	
-																							//	}
+																							if(getFirst(breaklist_head)!=0){
+                                                                                                patchlabel(getFirst(breaklist_head),nextquad()+1);
+                                                                                                }
+                                                                                            if(getFirst(contlist_head)!=0){
+                                                                                                patchlabel(getFirst(contlist_head),$2+1);
+                                                                                                }
 																							//patchlist($6->breakList,nextquad());
 																							//patchlist($6->contList,$2+1);
+																							//pushlist($6->breakList,nextquad());
+																							//pushlist($6->contList,$2+1);
 																						}
 					;
 
-returnstmt		:	RETURN SEMICOLON 			{
-													emit(ret,NULL,NULL,NULL,0,yylineno);
-													printf("returnstmt <- return; \n");
+returnstmt		:	RETURN SEMICOLON 			{							if(check_if_open_func==0){
+																				printf("\033[1;31m");
+										                                        printf("Error in line %d - Use of 'return' without a function \n",yylineno);
+										                                        printf("\033[0m");
+
+																			}else{
+																				emit(ret,NULL,NULL,NULL,0,yylineno);
+																				emit(jump,NULL,NULL,NULL,nextquad()+2,yylineno);
+																				printf("returnstmt <- return; \n");
+																			}
 												}
 
-				| 	RETURN {retFLAG=1;}expr SEMICOLON{retFLAG=0;}		{
-																			emit(ret,NULL,NULL,$3,0,yylineno);			//to $2 eiani to retflag logika giati vgazei error
-																			printf("returnstmt <- return expr; \n");
+				| 	RETURN {retFLAG=1;}expr SEMICOLON{retFLAG=0;}		{	
+																			if(check_if_open_func==0){
+																				printf("\033[1;31m");
+										                                        printf("Error in line %d - Use of 'return' without a function \n",yylineno);
+										                                        printf("\033[0m");
+
+																			}else{
+																				emit(ret,NULL,NULL,$3,0,yylineno);			//to $2 eiani to retflag logika giati vgazei error
+																				printf("returnstmt <- return expr; \n");
+																			}
 																		}
 				;
 

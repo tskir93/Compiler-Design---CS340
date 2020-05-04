@@ -1030,10 +1030,15 @@ void printquads(){	//tiponei ta quads
 		}else if(temp->op == tablesetelem && temp->result->type!=newtable_e){				//checks if op is tablesetelem kai kanei print analoga ti einai( to exw elegxei me arithmo gia arxi)
 			//printf("mpainei edw\n");
 			printf("%-15s",temp->result->sym->value.varVal->name);				//typwnei to temp.val -> _f0
-		
+			
 			check_expr(temp->result);
-		}else {
-			printf("%-15s",temp->result->sym->value.varVal->name);//(temp->result);
+		//}else if(){
+			//printf("mpainei edw gia auto\n");
+			//printf("einai tupoy %s\n",get_ic_type_to_String(temp->result->type));
+		}else{
+			//if(temp->result->sym->value.varVal->name!=NULL){
+				printf("%-15s",temp->result->sym->value.varVal->name);//(temp->result);
+			//}
 		}
 	}
 	if(temp->arg1!=NULL){
@@ -1063,6 +1068,7 @@ void printquads(){	//tiponei ta quads
 	}
 	
 	if(temp->label!=0){
+		//printf("mpainei edw\n");
 		printf("%d\n",temp->label);
 	}else{
 			printf("\n");								//kanei print to enter an den uparxei label
@@ -1111,7 +1117,8 @@ int isEmpty(intList** list) //epistrefei an i lista einai adeia 1 allios 0
 }
 
 int getFirst(intList * list){ //epistrefo tin timi tou prvtou stoixeiou
-	if(list!=NULL){
+	if(list->List){
+		
 		return list->List->val;
 	}
 	return 0;

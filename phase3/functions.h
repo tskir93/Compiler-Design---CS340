@@ -21,11 +21,10 @@ typedef struct intList{
 }intList;
 
 typedef struct stmt_t {
-	intlist_node * breakList;						//periexei toys arithmoys olwn twn quads poy kathena antistoixei se unfinished jump logw kapiou break p periexetai sto stmt
-	intlist_node	* contList;						//periexei toyw arithmoys olwn twn quads poy kathena antistoixei se unfinished jump logw kapioy continue p periexetai sto stmt
+	intList * breakList;						//periexei toys arithmoys olwn twn quads poy kathena antistoixei se unfinished jump logw kapiou break p periexetai sto stmt
+	intList	* contList;						//periexei toyw arithmoys olwn twn quads poy kathena antistoixei se unfinished jump logw kapioy continue p periexetai sto stmt
 	unsigned enter;
 	unsigned test;
-
 }stmt_t;
 
 typedef struct call{
