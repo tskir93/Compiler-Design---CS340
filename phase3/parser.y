@@ -129,6 +129,7 @@ extern FILE* yyin;
 %type <unsignedVal> elseprefix
 %type <unsignedVal> whilestart
 %type <unsignedVal> whilecond
+%type <unsignedVal> funcargs
 %type <stmtVal> loopstmt
 %type <stmtVal> continue
 %type <stmtVal> break
@@ -498,31 +499,32 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 													}
 
 				|	expr AND expr				{
-													if(check_corr_type($1)==0){
+													//if(check_corr_type($1)==0){
 														$$ = newexpr(boolexpr_e);
 														$$->sym = newtemp(Symtbl,scope,yylineno);
 														emit(and,$1,$3,$$,0,yylineno);
 														printf("expr <- expr op expr\n");
 														printf("expr <- expr op expr\n");
 
-													}else{
+													/*}else{
 																printf("\033[1;31m");
 					                                        	printf("Error in line %d - This type of expr could not be used with AND expr\n",yylineno);
 					                                        	printf("\033[0m");
-													}	
+													}	*/
 												}
 
 				|	expr OR expr				{
-													if(check_corr_type($1)==0){
+													//if(check_corr_type($1)==0){
 														$$ = newexpr(boolexpr_e);
 														$$->sym = newtemp(Symtbl,scope,yylineno);
+														printf("mpainei edw sto or \n");
 														emit(or,$1,$3,$$,0,yylineno);
 														printf("expr <- expr op expr\n");
-													}else{
+													/*}else{
 																printf("\033[1;31m");
 					                                        	printf("Error in line %d - This type of expr could not be used with OR expr\n",yylineno);
 					                                        	printf("\033[0m");
-													}
+													}*/
 												}
 
 				|	term 							{	
@@ -775,7 +777,7 @@ lvalue			:	ID 							{
 														            	$$ = lvalue_expr(look_up_inscope_noprint($1,scope-1));
 														                //printf("Ok %s refers to the previous variable and is visible\n",$1);
 														            }
-														           //printf("mpainei edw 3\n");
+														          // printf("mpainei edw 3\n");
 														        }
 														        
                                                             }else if(check_if_open_func!=0){
@@ -788,7 +790,7 @@ lvalue			:	ID 							{
 																		new_temp->space=scope;
 																		new_temp->offset=currscopeoffset();
 																		inccurrscopeoffset();
-																		//printf("mpainei edw 4\n");
+																		printf("mpainei edw 4\n");
 															            //printf("%s variable Scope %d\n",$1, scope);
 															        }
 														            
@@ -859,23 +861,29 @@ lvalue			:	ID 							{
 													    }
 													  
                                                     }	
-                                                    // $$ = look_up_inscope_noprint($1,scope); 
+                                                   
                                                     if(look_up_inscope($1,scope)!=NULL && retFLAG!=0 && scope==0){
                                                     		printf("\033[1;31m");
 													            printf("Error in line %d - Use of 'return' while not in a function\n",yylineno);
 													            printf("\033[0m");
                                                     }
-													//printSymtable();
+													
 													//toy dinw tin timi poy exei to lvalue gia na tin xrisimopoiisw meta stoys kanones lvalue ++ klp
 														if(look_up_inscope_noprint($1,scope)!=NULL){
+															printf("mpainei sto telos\n");
 															$$ = lvalue_expr(look_up_inscope_noprint($1,scope));
 														}
+														if(check_if_lib_noprint($1)==1 || check_type(look_up($1,scope)) ==1){						//added because when it was libfunc den ekane tipota && otan itan func genika den tin evlepe
+															printf("mpainei sto telos stin kainourgia\n");
+															$$ = lvalue_expr(look_up($1,scope));
+														}
 														printf("lvalue <- ID \n");
+														//printf("name = %s \n",$1);
 												    }
 
 				|	LOCAL ID 					{if(look_up_inscope_noprint($2,scope)==NULL && retFLAG==0){ 
 															if(check_if_lib($2,yylineno)==0){
-															printf("mpainei edw\n");
+															//printf("mpainei edw\n");
 																insert_variable(Symtbl,$2,scope,yylineno,check_Var_type_local(scope));
 
 																new_temp=look_up_inscope($1,scope);
@@ -947,21 +955,25 @@ call			:	call LEFT_PAR elist RIGHT_PAR 				{
 
 				|	lvalue callsuffix
 																	{	//allaksa to lvalue call suffix k ton elegxo apo katw ton efera edw
-																		
+																		//$1->sym = look_up($1->sym->value.funcVal->name,scope);
 																		if(check_type($1->sym)==1){
+
 																				if(check_if_lib_noprint($1->sym->value.funcVal->name)==1){				//phase 3 to bala se sxolia
+																					//	printf("to name einai*********************** %s\n",$1->sym->value.funcVal->name);
 										   												libfunc=1;
 										    											is_func=1;
 																				}
 																		}
 																		//sel 28 diaf 10
-
+																		
 																		$1 = emit_iftableitem(Symtbl,scope,$1,yylineno);
 																		if($2->method){
 																			t = $1;
 																			$1 = emit_iftableitem(Symtbl,scope,member_item(Symtbl,scope,t,$2->name,yylineno),yylineno);
 																			$2->elist->next = t;  					//insert as frst argument (rerversed , so last)
+																			//$2->elist = $2->elist->next;
 																		}
+
 																		$$ = make_call(Symtbl,scope,$1,$2->elist,yylineno);
 																	
 																		printf("call <- lvalue callsuffix \n");
@@ -989,7 +1001,9 @@ callsuffix		:	normcall								{
 
 normcall		:	LEFT_PAR elist RIGHT_PAR				{
 																//printf("seg edw\n");
-																$$ = (struct call*)malloc(sizeof(struct call));
+																if($2==NULL){					//added this line because of the seg with for and call
+																	$$ = (struct call*)malloc(sizeof(struct call));
+																}
 																$$->elist = $2;
 																$$->method = 0;
 																$$->name = NULL;
@@ -999,7 +1013,9 @@ normcall		:	LEFT_PAR elist RIGHT_PAR				{
 
 
 methodcall		:	DOUBLE_DOT ID LEFT_PAR elist RIGHT_PAR       	{
-																		$$ = (struct call*)malloc(sizeof(struct call));
+																		if($4==NULL){					//added this line because of the seg with for and call
+																			$$ = (struct call*)malloc(sizeof(struct call));
+																		}			
 																		$$->elist = $4;
 																		$$->method = 1;
 																		$$->name = $2;
@@ -1137,10 +1153,10 @@ funcprefix 		:	FUNCTION funcname
 														     	//printf("\033[1;31m");
 															   // printf("Error in line %d - Collision with library function %s\n",yylineno,$2);
 															   // printf("\033[0m");
-														    }else{
-															    printf("\033[1;31m");
-															    printf("Error in  line %d - This var is already defined before\n",yylineno);	
-															    printf("\033[0m");
+														   // }else{
+															//    printf("\033[1;31m");
+															//    printf("Error in  line %d - This var is already defined before\n",yylineno);	
+															 //   printf("\033[0m");
 														    }
 														} //printSymtable();
 												}
@@ -1160,6 +1176,7 @@ funcprefix 		:	FUNCTION funcname
 
 funcargs		:	LEFT_PAR {++scope;} idlist {--scope;}RIGHT_PAR funcblockstart
 											{
+												$$ = currscopeoffset();
 												enterscopespace();						//entering function locals space
 												resetfunctionlocaloffset();				//start counting locals from zero
 											}
@@ -1177,6 +1194,9 @@ funcbody		: 	block funcblockend
 
 funcdef			: 	funcprefix funcargs funcbody
 											{
+												//patchlabel($1,$3+2);
+												//patchlabel($3,nextquad()+2);
+												patchlabel($2,nextquad()+2);
 												exitscopespace();										//exiting function definition space
 												$$->value.funcVal->totalLocals = $funcbody;				//store locals in symbol entry
 												int offset = pop(scopeoffsetStack);
@@ -1498,7 +1518,9 @@ returnstmt		:	RETURN SEMICOLON 			{							if(check_if_open_func==0){
 										                                        printf("\033[0m");
 
 																			}else{
-																				emit(ret,NULL,NULL,$3,0,yylineno);			//to $2 eiani to retflag logika giati vgazei error
+																				emit(ret,NULL,NULL,$3,0,yylineno);
+																				//patchlabel($1,nextquad()+1);
+																				emit(jump,NULL,NULL,NULL,nextquad()+3,yylineno);
 																				printf("returnstmt <- return expr; \n");
 																			}
 																		}

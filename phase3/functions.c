@@ -828,10 +828,15 @@ expr* member_item(SymTable *Symtable,unsigned int scope,expr* lvalue, char* name
 //diaf10 sel 27
 expr* make_call(SymTable *Symtable,unsigned int scope,expr *lvalue, expr* reversed_elist,unsigned line){	//kaloume mia sinartisi
 	expr* func = emit_iftableitem(Symtable,scope,lvalue,line);
+	//emit(param,reversed_elist,NULL,NULL,0,line);				//added this to prin the sprite in the tes
+	
 	while(reversed_elist){
 		emit(param,reversed_elist,NULL,NULL,0,line);
 		reversed_elist = reversed_elist->next;
 	}
+	//reversed_elist = lvalue;
+	//emit(param,reversed_elist,NULL,NULL,0,line);
+
 	emit(Call,func,NULL,NULL,0,line);
 	expr* result = newexpr(var_e);
 	result->sym = newtemp(Symtable,scope,line);
@@ -970,7 +975,7 @@ switch(ex->type){
 		{printf("%-15s",ex->sym->value.varVal->name);
 		return 1;}
 	/*case libraryfunc_e:
-		{printf("%-15s",ex->val.strConst);
+		{printf("%-15s",ex->sym->value.varVal->name);
 		return 1;}*/
 ////	case arithexpr_e:
 ////		{printf("%-15s",ex->val.numConst);
