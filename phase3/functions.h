@@ -21,8 +21,8 @@ typedef struct intList{
 }intList;
 
 typedef struct stmt_t {
-	intList * breakList;						//periexei toys arithmoys olwn twn quads poy kathena antistoixei se unfinished jump logw kapiou break p periexetai sto stmt
-	intList	* contList;						//periexei toyw arithmoys olwn twn quads poy kathena antistoixei se unfinished jump logw kapioy continue p periexetai sto stmt
+	intlist_node * breakList;						//periexei toys arithmoys olwn twn quads poy kathena antistoixei se unfinished jump logw kapiou break p periexetai sto stmt
+	intlist_node	* contList;						//periexei toyw arithmoys olwn twn quads poy kathena antistoixei se unfinished jump logw kapioy continue p periexetai sto stmt
 	unsigned enter;
 	unsigned test;
 }stmt_t;
@@ -210,6 +210,7 @@ struct stack {
 	unsigned *args;
 };
 
+void insertlist(intList* head,int val);
 
 void patchlabel(unsigned quadNo,unsigned label);
 
@@ -232,6 +233,10 @@ expr* newexpr_constnum (double i);
 expr* newexpr_constbool(unsigned int b);
 
 int check_arith(expr *e);
+
+void whilestmt_check_lists(intList *breaklist_head,intList* contlist_head,unsigned arg1);
+
+void forstmt_check_lists(intList *breaklist_head,intList* contlist_head,unsigned arg1);
 
 int check_corr_type(expr *e);
 

@@ -25,7 +25,7 @@ int checkglob = 0;
 
 struct intList * breaklist_head;
 struct intList * contlist_head;
-struct stmt_t* forpre;
+struct stmt_t* tempstmt;
 
 struct expr* func;
 struct expr* t;
@@ -517,7 +517,7 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 													//if(check_corr_type($1)==0){
 														$$ = newexpr(boolexpr_e);
 														$$->sym = newtemp(Symtbl,scope,yylineno);
-														printf("mpainei edw sto or \n");
+														//printf("mpainei edw sto or \n");
 														emit(or,$1,$3,$$,0,yylineno);
 														printf("expr <- expr op expr\n");
 													/*}else{
@@ -583,10 +583,11 @@ term			: 	LEFT_PAR expr RIGHT_PAR			{
 																	emit(add,temps,newexpr_constnum(1),temps,0,yylineno);
 																	emit(tablesetelem,$2,$2->index,temps,0,yylineno);
 																}else{
-																	emit(add,$2,newexpr_constnum(1),temps,0,yylineno);
-																	temps = newexpr(arithexpr_e);
+																	
+																	temps = newexpr(constnum_e);
 																	temps->sym = newtemp(Symtbl,scope,yylineno);
-																	temps->x = -1;
+																	temps->x = 1;
+																	emit(add,$2,newexpr_constnum(1),temps,0,yylineno);
 																	emit(assign,$2,NULL,temps,0,yylineno);
 																}
 															}else{
@@ -640,10 +641,11 @@ term			: 	LEFT_PAR expr RIGHT_PAR			{
 																	emit(sub,temps,newexpr_constnum(1),temps,0,yylineno);
 																	emit(tablesetelem,$2,$2->index,temps,0,yylineno);
 																}else{
-																	emit(sub,$2,newexpr_constnum(1),temps,0,yylineno);
+																	
 																	temps = newexpr(constnum_e);
 																	temps->sym = newtemp(Symtbl,scope,yylineno);
-																	temps->x = -1;
+																	temps->x = 1;
+																	emit(sub,$2,newexpr_constnum(1),temps,0,yylineno);
 																	emit(assign,$2,NULL,temps,0,yylineno);
 																}
 														}else{
@@ -672,7 +674,7 @@ term			: 	LEFT_PAR expr RIGHT_PAR			{
 															}else{
 																emit(assign,$1,NULL,temps,0,yylineno);	
 																t = newexpr(constnum_e);
-																t->x = -1;
+																t->x = 1;
 																emit(sub,$1,t,$1,0,yylineno);
 															}
 														}else{
@@ -706,7 +708,7 @@ assignexpr		:	lvalue 	ASSIGN expr
 																	temps = emit_iftableitem(Symtbl,scope,$1,yylineno);
 																	temps->type = assignexpr_e;
 																}else{
-																printf("mpaineiedcvw\n");
+																//printf("mpaineiedcvw\n");
 																	emit(assign,$3,NULL,$1,0,yylineno);
 																	temps = newexpr(assignexpr_e);
 																	temps->sym =newtemp(Symtbl,scope,yylineno);
@@ -790,7 +792,7 @@ lvalue			:	ID 							{
 																		new_temp->space=scope;
 																		new_temp->offset=currscopeoffset();
 																		inccurrscopeoffset();
-																		printf("mpainei edw 4\n");
+																		//printf("mpainei edw 4\n");
 															            //printf("%s variable Scope %d\n",$1, scope);
 															        }
 														            
@@ -812,7 +814,7 @@ lvalue			:	ID 							{
                                                             }
                                                          
 													    }else if(retFLAG!=0){
-													    printf("mpainei edw 6\n");
+													   // printf("mpainei edw 6\n");
 													        if(check_if_open_func==0 && scope==0){
 													        	printf("\033[1;31m");
 													            printf("Error in line %d - Use of 'return' while not in a function\n",yylineno);
@@ -870,11 +872,11 @@ lvalue			:	ID 							{
 													
 													//toy dinw tin timi poy exei to lvalue gia na tin xrisimopoiisw meta stoys kanones lvalue ++ klp
 														if(look_up_inscope_noprint($1,scope)!=NULL){
-															printf("mpainei sto telos\n");
+															//printf("mpainei sto telos\n");
 															$$ = lvalue_expr(look_up_inscope_noprint($1,scope));
 														}
 														if(check_if_lib_noprint($1)==1 || check_type(look_up($1,scope)) ==1){						//added because when it was libfunc den ekane tipota && otan itan func genika den tin evlepe
-															printf("mpainei sto telos stin kainourgia\n");
+															//printf("mpainei sto telos stin kainourgia\n");
 															$$ = lvalue_expr(look_up($1,scope));
 														}
 														printf("lvalue <- ID \n");
@@ -1158,7 +1160,7 @@ funcprefix 		:	FUNCTION funcname
 															//    printf("Error in  line %d - This var is already defined before\n",yylineno);	
 															 //   printf("\033[0m");
 														    }
-														} //printSymtable();
+														}
 												}
 												//diaf 10 sel 5
 												$$ = look_up_inscope_noprint($2,scope);
@@ -1362,9 +1364,6 @@ idlists			:	ID 										{if(look_up_inscope_noprint($1,scope)==NULL){
 															{printf("idlist <- ,ID \n");}
 				;
 
-/*ifstmt			: 	IF LEFT_PAR expr RIGHT_PAR stmt  {printf("ifstmt <- if ( expr ) stmt \n");}
-				|   IF LEFT_PAR expr RIGHT_PAR stmt ELSE stmt {printf("ifstmt <- if ( expr ) stmt \n");}
-				;*/
 
 ifprefix		:	IF LEFT_PAR expr RIGHT_PAR			{	
 															temps = newexpr(constbool_e);
@@ -1391,9 +1390,6 @@ ifstmt 			:	ifprefix stmt 						{
 														}
 				;
 
-/*whilestmt		:	WHILE LEFT_PAR expr RIGHT_PAR {loop_signal++;} stmt {loop_signal--;} 		{printf("whilestmt <- while ( expr ) stmt \n");}
-				;*/
-
 loopstart		:	{++loopcounter;}
 				
 
@@ -1410,7 +1406,7 @@ break 			: 	BREAK SEMICOLON				{
 				                                        printf("Error in line %d - Use of 'break' while not in a loop\n",yylineno);
 				                                        printf("\033[0m");
 				                                    }else{                                 
-												  		pushlist(breaklist_head,nextquad());
+												  		insertlist(breaklist_head,nextquad());
 				                                    	emit(jump,NULL,NULL,NULL,0,yylineno);
 				                                    	printf("stmt <- break;\n\n");
 				                                    }
@@ -1424,7 +1420,7 @@ continue 		: 	CONTINUE SEMICOLON			{
 				                                        printf("Error in line %d - Use of 'continue' while not in a loop\n",yylineno);
 				                                        printf("\033[0m");
 				                                    }else{
-					                                    pushlist(contlist_head,nextquad());
+					                                    insertlist(contlist_head,nextquad());
 					                                    emit(jump,NULL,NULL,NULL,0,yylineno);
 					                                    printf("stmt <- continue;\n\n");
 													}
@@ -1446,22 +1442,11 @@ whilecond 		:  	LEFT_PAR expr RIGHT_PAR				{
 whilestmt 		:	whilestart whilecond {loop_signal++;} loopstmt {loop_signal--;}					{ 			//sto $3 evgaze oti den exei ginei declare o typos
 																											emit(jump,NULL,NULL,NULL,$1+1,yylineno);
 																											patchlabel($2,nextquad()+1);
-																											if(isEmpty(breaklist_head)!=0){
-																												patchlabel(getFirst(breaklist_head),nextquad());	
-																											}
-																											if(isEmpty(contlist_head)!=0){
-																												patchlabel(getFirst(breaklist_head),$1);	
-																											}
-																											//patchlist($4->contList,$1);
-																											//pushlist($4->contList,$1);		
+																											whilestmt_check_lists( breaklist_head,contlist_head,$1);				
 																									}
 				;				
 
 				
-
-/*forstmt			:	FOR LEFT_PAR elist SEMICOLON expr SEMICOLON elist RIGHT_PAR {loop_signal++;} stmt {loop_signal--;} {printf("forstmt <- for ( elist; expr; elist ) stmt \n");}
-				;*/
-
 N 				: 	{$$ = nextquad(); emit(jump,NULL,NULL,0,0,yylineno);}	//paragei ena unfinished jump
 				;
 
@@ -1470,10 +1455,10 @@ M 				:	{$$ = nextquad();}
 
 
 forprefix		: 		FOR LEFT_PAR elist SEMICOLON M expr SEMICOLON 					{
-																							forpre= malloc(sizeof(struct stmt_t));
-																							forpre->test = $5;
-																							forpre->enter = nextquad();
-																							$$=forpre;
+																							tempstmt = malloc(sizeof(struct stmt_t));
+																							tempstmt->test = $5;
+																							tempstmt->enter = nextquad();
+																							$$ = tempstmt;
 																							temps = newexpr(constbool_e);
 																							temps->val.boolConst = 0;
 																							emit(if_eq,$6,temps,0,0,yylineno);
@@ -1485,17 +1470,7 @@ forstmt 			: 		forprefix N elist RIGHT_PAR N loopstmt N 					{
 																							patchlabel($2,nextquad()+1);	//false jump
 																							patchlabel($5,$1->test+1);		//loop jump
 																							patchlabel($7,$2+2);			//closure jump
-
-																							if(getFirst(breaklist_head)!=0){
-                                                                                                patchlabel(getFirst(breaklist_head),nextquad()+1);
-                                                                                                }
-                                                                                            if(getFirst(contlist_head)!=0){
-                                                                                                patchlabel(getFirst(contlist_head),$2+1);
-                                                                                                }
-																							//patchlist($6->breakList,nextquad());
-																							//patchlist($6->contList,$2+1);
-																							//pushlist($6->breakList,nextquad());
-																							//pushlist($6->contList,$2+1);
+																							forstmt_check_lists(breaklist_head,contlist_head,$2);   
 																						}
 					;
 
@@ -1519,7 +1494,7 @@ returnstmt		:	RETURN SEMICOLON 			{							if(check_if_open_func==0){
 
 																			}else{
 																				emit(ret,NULL,NULL,$3,0,yylineno);
-																				//patchlabel($1,nextquad()+1);
+																				//patchlabel($$,nextquad()+1);
 																				emit(jump,NULL,NULL,NULL,nextquad()+3,yylineno);
 																				printf("returnstmt <- return expr; \n");
 																			}
@@ -1537,34 +1512,23 @@ int yyerror(char* yaccProvidedMessage){
 }
 
 
-	
-
-
 int main(int argc, char **argv) {
 	int x;
-	contlist_head =malloc(sizeof(struct intList));
-	breaklist_head=malloc(sizeof(struct intList));
+	contlist_head = malloc(sizeof(struct intList));
+	breaklist_head = malloc(sizeof(struct intList));
 	Symtbl = new_Symtable();
 	makestack();
-	
-
 
 	yyin = stdin;
-	/*
 	if(argc>1){
         if(!(yyin=fopen(argv[1],"r"))){
             fprintf(stderr, "Cannot read file: %s\n",argv[1]);
             return 1;
         }
-    }*/
-		
-		
-
+    }
 			yyparse();
 			printf("\n");
 			printSymtable();
 			printquads();
-			//printSymtable_byscope();
-		
 		return 0;
 }

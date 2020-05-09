@@ -1083,48 +1083,36 @@ void printquads(){	//tiponei ta quads
 	
 }
 
-void pushlist(intList* head,int val){ //bazo ena item sto telos tis listas
-	intlist_node * current = malloc(sizeof( intlist_node));
+//bazo ena item stin arxi tis listas
+void insertlist(intList* head,int val){ 
+	intlist_node * current = malloc(sizeof(intlist_node));
 	current->val=val;
 	current->next=head->List;
 	head->List=current;
-	
-	return;
-	
 }
 
-/*int pop(intList ** head) { //bgazo to proto stoixeio tis listas 
-    int retval = -1;
-	intlist_node * current=head;
-	while(current->next !=NULL){
-		current=current->next;
+void whilestmt_check_lists(intList *breaklist_head,intList* contlist_head,unsigned arg1){
+	if(breaklist_head->List!=NULL){	
+		patchlabel(breaklist_head->List->val,nextquad());
+	//}else{
+	//	patchlabel(0,nextquad());
 	}
-    intlist * next_node = NULL;
-
-    if (*head == NULL) {
-        return -1;
-    }
-
-    next_node = (*head)->next;
-    retval = (*head)->val;
-    free(*head);
-    *head = next_node;
-
-    return retval;
-}
-*/
-
-int isEmpty(intList** list) //epistrefei an i lista einai adeia 1 allios 0
-{
-    
-    if(*list == NULL) return 1;
-	else return 0;
-}
-
-int getFirst(intList * list){ //epistrefo tin timi tou prvtou stoixeiou
-	if(list->List){
-		
-		return list->List->val;
+	if(contlist_head->List!=NULL){
+		patchlabel(contlist_head->List->val,arg1);	
+//	}else{
+	//	patchlabel(0,nextquad());
 	}
-	return 0;
+}
+
+void forstmt_check_lists(intList *breaklist_head,intList* contlist_head,unsigned arg1){
+	if(breaklist_head->List!=NULL){		
+		patchlabel(breaklist_head->List->val,nextquad()+1);
+//	}else{
+//		patchlabel(0,nextquad());
+	}
+	if(contlist_head->List!=NULL){
+		patchlabel(contlist_head->List->val,arg1+1);	
+//	}else{
+//		patchlabel(0,nextquad());
+	}
 }
