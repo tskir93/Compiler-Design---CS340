@@ -7,7 +7,14 @@
 #define EXPAND_SIZE 1024
 #define CURR_SIZE (total*sizeof(struct quad))
 #define NEW_SIZE (EXPAND_SIZE*sizeof(struct quad)+CURR_SIZE)
-
+#define CURR_IN_SIZE (total_instructions*sizeof(struct instruction))
+#define NEW_IN_SIZE (EXPAND_SIZE * sizeof(struct instruction) + CURR_IN_SIZE)
+#define CURR_NUM (total_num * sizeof(double))
+#define NEW_NUM (EXPAND_SIZE * sizeof(double) + CURR_NUM)
+#define CURR_STRING (total_string * sizeof(char*))
+#define NEW_STRING (EXPAND_SIZE * sizeof(char*) + CURR_STRING)
+#define CURR_USERFUNCS (total_userfuncs * sizeof(struct userfunc))
+#define NEW_USERFUNCS (EXPAND_SIZE*sizeof(struct userfunc)+CURR_USERFUNCS)
 
 struct stack* scopeoffsetStack ;
 struct stack* loopcounterstack;
@@ -20,14 +27,19 @@ unsigned numSize;
 char** stringConsts;
 unsigned totalStringConsts;
 unsigned stringSize;
+int *stringlength;						//pinakas gia na kratame to length twn string wste na to pername k auto sto binary
+
 
 char** namedLibfuncs;
 unsigned totalNamedLibfuncs;
 unsigned namedLibSize;
+int *libfuncslength;					//pinakas gia na kratame to length twn libfunc
+
 
 struct userfunc* userFuncs;
 unsigned totalUserFuncs;
-unsigned userfuncSize;;
+unsigned userfuncSize;
+int *userfuncslength;
 
 
 typedef struct intlist_node{ //struct gia breaklist kai continuelist

@@ -1,7 +1,6 @@
 #include "functions.h"
 
-#define CURR_IN_SIZE (total_instructions*sizeof(struct instruction))
-#define NEW_IN_SIZE (EXPAND_SIZE * sizeof(struct instruction) + CURR_IN_SIZE)
+
 SymTable *head; 
 
 
@@ -638,7 +637,51 @@ void expand(void){	//megalonoume ton dinamiko pinaka mas
 	quads = p;
 	total += EXPAND_SIZE;
 }
+/*
+void expand_numC(void){	//megalonoume ton dinamiko pinaka ton numbers
+	assert (total_num == curr_num);
+	double* i = (double*)malloc(NEW_NUM);
+	if(numConsts){
+		memcpy(i, numConsts,CURR_NUM);
+		free(numConsts);
+	}
+	numConsts = i;
+	total_num += EXPAND_SIZE;
+}
 
+void expand_stringC(void){	//megalonoume ton dinamiko pinaka ton string
+	assert (total_string == curr_string);
+	char ** i = (char**)malloc(NEW_STRING);
+	if(stringConsts){
+		memcpy(i, stringConsts,CURR_STRING);
+		free(stringConsts);
+	}
+	stringConsts = i;
+	total_string += EXPAND_SIZE;
+}
+
+void expand_libfuncs(void){	//megalonoume ton dinamiko pinaka ton libfuncs
+	assert (total_libfuncs == curr_libfuncs);
+	char ** i = (char**)malloc(NEW_STRING);
+	if(namedLibfuncs){
+		memcpy(i, namedLibfuncs,CURR_STRING);
+		free(namedLibfuncs);
+	}
+	namedLibfuncs = i;
+	total_libfuncs += EXPAND_SIZE;
+}
+
+void expand_userfuncs(void){	//megalonoume ton dinamiko pinaka ton userfuncs
+	assert (total_userfuncs == curr_userfuncs);
+	struct userfunc* i = (struct userfunc *)malloc(NEW_STRING);
+	if(userFuncs){
+		memcpy(i, userFuncs,CURR_STRING);
+		free(userFuncs);
+	}
+	userFuncs = i;
+	total_userfuncs += EXPAND_SIZE;
+}
+*/
 //diaf 9 sel 38
 void emit(	//paragogi mias neas entolis
 	iopcode		op,
@@ -1168,30 +1211,61 @@ avmbinaryfile(){
 		exit(1);
 	}
 	unsigned magicnumber = 340200501;
-	fwrite(&magicnumber, sizeof(unsigned), 1, binfile);					//writing magicnumber in binary file
-
-	//pername ola ta arrays sto binary
-	for(i=0;i<numSize;i++){
-		fwrite(numConsts,sizeof(numConsts),1,binfile);					//grafei olo ton pinaka me ta numConsts sto binary
-	}
+	fwrite(&magicnumber, sizeof(unsigned),1,binfile);					//writing magicnumber in binary file
+	fwrite(&numSize,sizeof(unsigned),1,binfile);						//pername to megethos kathe pinaka meta to magicnumber k m auti ti seira tha t diavasoyme k sto readbinary
+	fwrite(&stringSize,sizeof(unsigned),1,binfile);
+	fwrite(&namedLibSize,sizeof(unsigned),1,binfile);
+	fwrite(&userfuncSize,sizeof(unsigned),1,binfile);
+	fwrite(&currinstruction,sizeof(unsigned),1,binfile);
 
 	for(i=0;i<stringSize;i++){
-		fwrite(stringConsts,sizeof(stringConsts),1,binfile);
+		stringlength[i] = strlen(stringConsts[i]);						//+1 gia to \0
 	}
 
 	for(i=0;i<namedLibSize;i++){
-		fwrite(namedLibfuncs,sizeof(namedLibfuncs),1,binfile);
+		libfuncslength[i] = strlen(namedLibfuncs[i]);
+	}
+
+	//pername ola ta arrays sto binary
+	for(i=0;i<numSize;i++){
+		fwrite(&numConsts[i],sizeof(double),1,binfile);					//grafei olo ton pinaka me ta numConsts sto binary
+	}
+
+	for(i=0;i<stringSize;i++){
+		fwrite(&stringlength[i],sizeof(int),1,binfile);					//pernaw ton pinaka p periexei to length kathe string gia na ton exw otan tha desmevw xwro sto fopen binary
+	}
+
+	for(i=0;i<namedLibSize;i++){
+		fwrite(&libfuncslength[i],sizeof(int),1,binfile);				//pernav ton pinaka p periexei to length kathe libfunc gia na ton exw otan tha krataw xwro stin fopen 
+	}
+
+	for(i=0;i<stringSize;i++){
+		fwrite(stringConsts[i],sizeof(char),strlen(stringConsts[i]),binfile);
+	}
+
+	for(i=0;i<namedLibSize;i++){
+		fwrite(namedLibfuncs[i],sizeof(char),strlen(namedLibfuncs[i]),binfile);
+	}
+
+	for(i=0;i<userfuncSize;i++){
+		userfuncslength[i] = strlen(userFuncs[i].id);
+	}
+
+	for(i=0;i<userfuncSize;i++){
+		fwrite(&userfuncslength[i],sizeof(int),1,binfile);				//pernav ton pinaka p periexei to length kathe libfunc gia na ton exw otan tha krataw xwro stin fopen 
 	}
 
 	for(i=0;i<userfuncSize;i++){
 		fwrite(&userFuncs[i].taddress,sizeof(userFuncs),1,binfile);
 		fwrite(&userFuncs[i].localSize,sizeof(userFuncs),1,binfile);
-		fwrite(&userFuncs[i].id,sizeof(userFuncs),1,binfile);
+		fwrite(userFuncs[i].id,sizeof(char),strlen(userFuncs[i].id),binfile);
 	}
 
 	for(i=0;i<currinstruction;i++){
 		fwrite(&instructions[i],sizeof(instruction),1,binfile);
 	}
+
+
 
 	fclose(binfile);
 
@@ -1201,10 +1275,10 @@ avmbinaryfile(){
 }
 
 
-unsigned magicnumber(){
-	unsigned x = 340200501;
-	return x;
-}
+//unsigned magicnumber(){
+//	unsigned x = 340200501;
+//	return x;
+//}
 
 
 //arrays(){
@@ -1236,6 +1310,7 @@ unsigned consts_newstring(const char *s){
 		//printf("mpainei sto numconsts=null\n");
 		//printf("to n eiani iso me = %f\n",n);
 		stringConsts=(char **)malloc(1024*sizeof(char*));
+		stringlength = (int*)malloc(1024*sizeof(int));
 	}
 	for(i=0;i<stringSize;i++){
 		if(strcmp(s,stringConsts[i])==0){					//an to string uparxei idi epistrefei to i poy vrisketai ston pinaka
@@ -1271,6 +1346,7 @@ unsigned libfuncs_newused(const char* s){
 	int i;
 	if(namedLibfuncs == NULL){
 		namedLibfuncs = (char**)malloc(1024*sizeof(char*));
+		libfuncslength = (int*)malloc(1024*sizeof(int));
 	}
 	for(i=0;i<namedLibSize;i++){
 		if(strcmp(s,namedLibfuncs[i])==0){					//an to string uparxei idi epistrefei to i poy vrisketai ston pinaka
@@ -1287,6 +1363,7 @@ unsigned userfuncs_newfunc(SymbolTableEntry* sym){
 	int i;
 	if(userFuncs == NULL){
 		userFuncs = (struct userfunc*)malloc(1024*sizeof(struct userfunc));
+		userfuncslength = (int*)malloc(1024*sizeof(int));
 	}
 	for(i=0;i<userfuncSize;i++){
 		if(strcmp(userFuncs[i].id,sym->value.funcVal->name)==0){
@@ -1689,42 +1766,34 @@ void generate_all(void){
 
 }
 
-void print_num(void){
+void print_tables(void){
 	int i;
 	printf("***********CONSTNUMS***********\n");
 	printf("Constnums total = %d\n\n",numSize );
 	for(i=0;i<numSize;i++){
-		printf("%d: Number %.f \n",i,numConsts[i]);
+		printf("%d : %f \n",i,numConsts[i]);
 	}
 	printf("\n");
-}
 
-void print_strings(void){
-	int i;
 	printf("***********STRINGS***********\n");
 	printf("Strings total = %d\n\n",stringSize );
 	for(i=0;i<stringSize;i++){
-		printf("%d: String %s \n",i,stringConsts[i]);
+		printf("%d : %s \n",i,stringConsts[i]);
 	}
 	printf("\n");
-}
 
-void print_libfuncs(void){
-	int i;
 	printf("***********LIBFUNCS***********\n");
 	printf("Libfuncs total = %d\n\n",namedLibSize );
 	for(i=0;i<namedLibSize;i++){
-		printf("%d: Libfunc %s \n",i,namedLibfuncs[i]);
+		printf("%d : %s \n",i,namedLibfuncs[i]);
+	}
+	printf("\n");
+
+	printf("***********USERFUNCS***********\n");
+	printf("Userfuncs total = %d\n\n",userfuncSize );
+	for(i=0;i<userfuncSize;i++){
+		printf("%d : %s \n",i,userFuncs[i].id);
 	}
 	printf("\n");
 }
 
-void print_userfuncs(void){
-	int i;
-	printf("***********USERFUNCS***********\n");
-	printf("Userfuncs total = %d\n\n",userfuncSize );
-	for(i=0;i<userfuncSize;i++){
-		printf("%d: Userfunc %s \n",i,userFuncs[i].id);
-	}
-	printf("\n");
-}
