@@ -1,2 +1,2 @@
 all:
-	gcc  -o final avm.c
+	gcc  -o final avm.c -lm										
