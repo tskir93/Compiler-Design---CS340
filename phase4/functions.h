@@ -29,17 +29,14 @@ unsigned totalStringConsts;
 unsigned stringSize;
 int *stringlength;						//pinakas gia na kratame to length twn string wste na to pername k auto sto binary
 
-
 char** namedLibfuncs;
 unsigned totalNamedLibfuncs;
 unsigned namedLibSize;
 int *libfuncslength;					//pinakas gia na kratame to length twn libfunc
 
-
 struct userfunc* userFuncs;
 unsigned totalUserFuncs;
 unsigned userfuncSize;
-int *userfuncslength;
 
 
 typedef struct intlist_node{ //struct gia breaklist kai continuelist
@@ -98,6 +95,7 @@ typedef struct SymbolTableEntry {
 	enum scopespace_t space;
 	unsigned taddress;
 	struct SymbolTableEntry *next;
+	intList * returnList;
 }SymbolTableEntry;
 
 typedef struct SymTable{ 
@@ -307,6 +305,7 @@ typedef enum vmopcode{
 	jle_v,
 	jge_v,
 	jlt_v,
+	jump_v,
 	jgt_v,
 	call_v,
 	pusharg_v,
@@ -315,8 +314,7 @@ typedef enum vmopcode{
 	newtable_v,
 	tablegetelem_v,
 	tablesetelem_v,
-	nop_v,
-	jump_v
+	nop_v
 }vmopcode;
 
 typedef enum vmarg_t{
@@ -371,6 +369,21 @@ typedef struct userfunc{
 
 
 //----------------------------------code for generation-------------------------------------------------------------
+
+
+typedef struct funcstack_node
+{
+	SymbolTableEntry * sym;
+	struct funcstack_node * next;
+}funcstack_node;
+
+
+typedef struct funcstack{
+	struct funcstack_node * stack;
+	int top;
+}funcstack;
+
+
 
 unsigned consts_newstring(const char* s);	//pinakes statheron timon kai sinartiseon
 unsigned consts_newnumber(double n);

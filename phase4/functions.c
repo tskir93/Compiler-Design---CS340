@@ -729,7 +729,12 @@ SymbolTableEntry *newtemp(SymTable *Symtable,unsigned int scope, unsigned int li
 	}else{
         
 		//char * new_name = newtempname();
-        insert_variable(Symtable,name,scope,line,LOCALE);
+		if(scope==0){												//tskir changes 1/6
+        	insert_variable(Symtable,name,scope,line,GLOBAL);
+        }else{
+        	insert_variable(Symtable,name,scope,line,LOCALE);
+        }
+
         SymbolTableEntry *sym = look_up_inscope_noprint(name,scope);
         //sym->lala =1;
         return sym;
@@ -1087,6 +1092,7 @@ void printquads(){	//tiponei ta quads
 		}else if(temp->op == tablesetelem && temp->result->type!=newtable_e){				//checks if op is tablesetelem kai kanei print analoga ti einai( to exw elegxei me arithmo gia arxi)
 			//printf("mpainei edw\n");
 			printf("%-15s",temp->result->sym->value.varVal->name);				//typwnei to temp.val -> _f0
+			//temp->result->type = constnum_e;
 			
 			check_expr(temp->result);
 		//}else if(){
@@ -1135,8 +1141,58 @@ void printquads(){	//tiponei ta quads
 	
 }
 
+char * get_vmopcode_type_to_String(vmopcode opcode) {
+	switch (opcode) {
+		case assign_v: return "assign_v";
+		case add_v: return "add_v";
+		case sub_v: return "sub_v";
+		case mul_v: return "mul_v";
+		case div_v: return "div_v";
+		case mod_v: return "mod_v";
+		case uminus_v: return "uminus_v";
+		case jeq_v: return "jeq_v";
+		case jne_v: return "jne_v";
+		case jle_v: return "jle_v";
+		case jge_v: return "jge_v";
+		case jlt_v: return "jlt_v";
+		case jgt_v: return "jgt_v";
+		case jump_v: return "jump_v";
+		case call_v: return "call_v";
+		case pusharg_v: return "pusharg_v";
+		case funcenter_v: return "funcenter_v";
+		case funcexit_v: return "funcexit_v";
+		case newtable_v: return "newtable_v";
+		case tablegetelem_v: return "tablegetelem_v";
+		case tablesetelem_v: return "tablesetelem_v";
+		case nop_v: return "nop_v";	
+	}
+}
+
+void print_instructions(void) {
+	int i;
+	printf("\033[0;36m");		
+	printf("-----------------------------------------*****************Instructions output*****************-----------------------------------------\n\n\n");
+	printf("%-15s%-15s\n","instr","opcode");
+	printf("-----------------------------------------------------------------------------------------------------------------------------------\n");
+	printf("\033[0m");
+	for (i=0;i<currinstruction;i++) {
+		printf("\033[0;32m");
+		printf("%-6d %15s\n", i+1 ,get_vmopcode_type_to_String(instructions[i].opcode));
+		printf("\033[0m");
+	}
+}
+
+
 //bazo ena item stin arxi tis listas
 void insertlist(intList* head,int val){ 
+	intlist_node * current = malloc(sizeof(intlist_node));
+	current->val=val;
+	current->next=head->List;
+	head->List=current;
+}
+
+void insertstack(intList* head,int val){
+	if(head==NULL)head=malloc(sizeof(intList)); 
 	intlist_node * current = malloc(sizeof(intlist_node));
 	current->val=val;
 	current->next=head->List;
@@ -1191,6 +1247,7 @@ void emit_instr(instruction *t){
 	if (currinstruction == total_instructions)
 		expand_instr();
 	instruction* p = instructions + currinstruction++;
+	//printf("mpainei edw\n");
 	p->opcode = t->opcode;
 	p->arg1	= t->arg1;
 	p->arg2	= t->arg2;
@@ -1198,6 +1255,8 @@ void emit_instr(instruction *t){
 	p->srcLine = t->srcLine;
 	//printf("vgainei apo tin emit instr\n");
 }
+
+
 
 
 
@@ -1212,6 +1271,7 @@ avmbinaryfile(){
 	}
 	unsigned magicnumber = 340200501;
 	fwrite(&magicnumber, sizeof(unsigned),1,binfile);					//writing magicnumber in binary file
+	fwrite(&programVarOffset,sizeof(unsigned),1,binfile);				//grafoume t global vars sto arxeio opws eipame k sto frontistirio
 	fwrite(&numSize,sizeof(unsigned),1,binfile);						//pername to megethos kathe pinaka meta to magicnumber k m auti ti seira tha t diavasoyme k sto readbinary
 	fwrite(&stringSize,sizeof(unsigned),1,binfile);
 	fwrite(&namedLibSize,sizeof(unsigned),1,binfile);
@@ -1248,17 +1308,9 @@ avmbinaryfile(){
 	}
 
 	for(i=0;i<userfuncSize;i++){
-		userfuncslength[i] = strlen(userFuncs[i].id);
-	}
-
-	for(i=0;i<userfuncSize;i++){
-		fwrite(&userfuncslength[i],sizeof(int),1,binfile);				//pernav ton pinaka p periexei to length kathe libfunc gia na ton exw otan tha krataw xwro stin fopen 
-	}
-
-	for(i=0;i<userfuncSize;i++){
 		fwrite(&userFuncs[i].taddress,sizeof(userFuncs),1,binfile);
 		fwrite(&userFuncs[i].localSize,sizeof(userFuncs),1,binfile);
-		fwrite(userFuncs[i].id,sizeof(char),strlen(userFuncs[i].id),binfile);
+		fwrite(&userFuncs[i].id,sizeof(userFuncs),1,binfile);
 	}
 
 	for(i=0;i<currinstruction;i++){
@@ -1303,6 +1355,9 @@ strings(){
 //----------------------------------entoles gia avm-------------------------------------------------------------
 
 //----------------------------------code for generation-------------------------------------------------------------
+
+struct funcstack * func_stack=NULL;
+
 
 unsigned consts_newstring(const char *s){
 	int i;
@@ -1361,24 +1416,68 @@ unsigned libfuncs_newused(const char* s){
 
 unsigned userfuncs_newfunc(SymbolTableEntry* sym){
 	int i;
-	if(userFuncs == NULL){
-		userFuncs = (struct userfunc*)malloc(1024*sizeof(struct userfunc));
-		userfuncslength = (int*)malloc(1024*sizeof(int));
-	}
-	for(i=0;i<userfuncSize;i++){
-		if(strcmp(userFuncs[i].id,sym->value.funcVal->name)==0){
-			return i;
+	printf("mpainei stin userfuncs_newfunc\n");
+	//if(sym!=NULL){
+		printf("mpainei stin userfuncs_newfunc!=NULL\n");
+		if(userFuncs == NULL){
+			userFuncs = (struct userfunc*)malloc(1024*sizeof(struct userfunc));
 		}
-	}
-	userFuncs[userfuncSize].id = sym->value.funcVal->name;
-	userFuncs[userfuncSize].taddress = nextinstructionlabel();
-	userFuncs[userfuncSize].localSize = sym->value.funcVal->totalLocals;
-	i = userfuncSize;
-	userfuncSize++;
+		for(i=0;i<userfuncSize;i++){
+			if(strcmp(userFuncs[i].id,sym->value.funcVal->name)==0){
+				return i;
+			}
+		}
+		
+		userFuncs[userfuncSize].id = sym->value.funcVal->name;
+		userFuncs[userfuncSize].taddress = nextinstructionlabel();
+		userFuncs[userfuncSize].localSize = sym->value.funcVal->totalLocals;
+		i = userfuncSize;
+		userfuncSize++;
+	//}
 	return i;
 
 }
 
+void push_instack(funcstack * stack,SymbolTableEntry * sym){ // bazo sthn arxi ths stoibas
+funcstack_node * new_node=(funcstack_node*)malloc(sizeof(funcstack_node));
+new_node->sym=sym;
+
+if(stack->top==-1){ //ean einai keni
+	func_stack=malloc(sizeof(struct funcstack));
+	stack->stack=new_node;
+	stack->stack=NULL;
+	stack->top+=1;
+}
+else{
+	stack->top+=1;
+	new_node->next=stack->stack;
+	stack->stack=new_node;
+}
+
+}
+
+SymbolTableEntry * pop_fromstack(funcstack * stack){ //bgazo apo tin arxi ths stoibas
+	SymbolTableEntry * new_node_sym;
+	if(stack->top==-1){	//ean einai keni
+	printf("Einai keni\n");
+	return NULL;
+	}
+	new_node_sym=stack->stack->sym;
+	stack->stack=stack->stack->next;
+	stack->top--;
+	return new_node_sym;
+
+}
+
+SymbolTableEntry * Take_Top(funcstack * stack){ //pairnv to sym tou protou stoixeioy
+	
+	if(stack->top==-1)
+	return NULL;
+	else{
+		stack->top--;
+		return stack->stack->sym;
+	}
+}
 
 
 //sel 11 diaf 14
@@ -1390,15 +1489,20 @@ void make_operand(expr* e, vmarg* arg){	//exr->input,vmarg->output
 		//exit(1);
 		return;
 	}
+
+	//arg = malloc(sizeof(vmarg));
 	switch(e->type){
 		case var_e:			//auta kseroume epipleon oti tha einai kai krifes metablites
 		case tableitem_e:
 		case arithexpr_e:
+		case assignexpr_e:				//tskir
 		case boolexpr_e:
 		case newtable_e:{
+			
 			assert(e->sym);
 			arg->val = e->sym->offset;
-
+			printf("to ofset mas einai %d toy %s \n",e->sym->offset,e->sym->value.varVal->name);
+			//if(e->sym->value.varVal=
 			switch(e->sym->space){
 				case programvar: arg->type = global_a;break;
 				case functionlocal: arg->type = local_a;break;
@@ -1445,6 +1549,7 @@ void make_operand(expr* e, vmarg* arg){	//exr->input,vmarg->output
 			printf("mpanei sto programfunc_e\n");
 			arg->val = userfuncs_newfunc(e->sym);
 			arg->type = userfunc_a;
+			printf("vgainei apo t programfunc_e\n");
 			break;
 		}
 
@@ -1454,8 +1559,10 @@ void make_operand(expr* e, vmarg* arg){	//exr->input,vmarg->output
 			break;
 		}
 
-		//default: assert(0);
+		default: {assert(0);printf("*****************default\n");}
 	}
+
+	printf("vgainei apo tin make_operand\n");
 }
 
 //pame sto telos twn incomplete jumps kai prosthetoume to kainourgio incomplete jump
@@ -1527,7 +1634,7 @@ void generate(vmopcode op,quad* quad){
 	emit_instr(t); 									
 }
 
-void reset_operand(vmarg *arg){
+void reset_operand(vmarg *arg){						//katharizoume ta skoupidia ara pername san default timi as poyme to nil_a			
 	arg->type = nil_a;
 }
 
@@ -1542,6 +1649,15 @@ void generate_TABLEGETELEM(quad* quad){generate(tablegetelem_v,quad);}
 void generate_TABLESETELEM(quad* quad){generate(tablesetelem_v,quad);}
 void generate_ASSIGN(quad* quad){generate(assign_v,quad);}
 
+void generate_UMINUS(quad* p){
+	instruction* t = (instruction*)malloc(sizeof(instruction));
+	t->opcode = uminus_v;
+	make_operand(p->arg1,&(t->arg1));
+	make_numberoperand(&(t->arg2),-1);
+	make_operand(p->result,&(t->result));
+	p->taddress = nextinstructionlabel();
+	emit_instr(t);
+}
 void generate_NOP(){
 	instruction *t = (instruction *)malloc(sizeof(instruction));
 	t->opcode = nop_v;
@@ -1679,10 +1795,41 @@ void generate_GETRETVAL(quad* quad){
 }
 
 void generate_FUNCSTART(quad* quad){
-	//printf("mpainei edw\n");
-	quad->taddress = nextinstructionlabel();
+	int i;
+	SymbolTableEntry * f=quad->result->sym;
+
+	f->taddress=nextinstructionlabel();
+	printf("mpainei stin funcstarttt\n");
+
+	printf("pernaei t 1\n");
+	//epeidh kanoume jump print to func start prepei stin generate na ftiaksoume k tin entoli jump
+	//instruction *s = (instruction *)malloc(sizeof(instruction));
+	//s->opcode = jump_v;
+	//s->srcLine = quad->line;
+	//make_operand(quad->result,&s->result);
+	//make_operand(quad->arg1,&s->arg1);
+	//make_operand(quad->arg2,&s->arg2);
+	//emit_instr(s);
+	printf("kanei tin emit\n");	
+	//i = userfuncs_newfunc(quad->result->sym);					//seg edw giati itan prin to jump opote den evriske tipota k petouse seg
+	//quad->taddress = nextinstructionlabel();
 	//sel 25 thelei sumplirwmwaaaaaaaaaaaa
+	userfuncs_newfunc(f); //added by george
+	quad->taddress=nextinstructionlabel();
+	if(func_stack==NULL)
+	func_stack=malloc(sizeof(struct funcstack));
+	printf("ola kala\n");
+	push_instack(func_stack,f);//added by george*/
 	
+
+	printf("eftase meta to quad->add\n");
+	//if(quad->result->sym==NULL){
+	
+	//}else{
+	//	printf("to quad->result->sym==NULL\n");
+	//}
+
+	printf("ftanei edw stin funcstart\n");
 	instruction *t = (instruction *)malloc(sizeof(instruction));
 	//printf("mpainei edw1\n");
 	t->opcode = funcenter_v;
@@ -1690,13 +1837,18 @@ void generate_FUNCSTART(quad* quad){
 	t->srcLine = quad->line;
 	//printf("mpainei edw 3\n");
 	make_operand(quad->result,&t->result);
+	printf("pernaei to make_oeprand 1\n");
 	make_operand(quad->arg1,&t->arg1);
+	printf("pernaei to make_oeprand 2\n");
 	make_operand(quad->arg2,&t->arg2);
+	printf("pernaei to make_oeprand 3\n");
 	emit_instr(t);
+
+	printf("teleiwnei i funcstart\n");
 }
 
 void generate_RETURN(quad* quad){
-
+	SymbolTableEntry * f;
 	quad->taddress = nextinstructionlabel();
 	instruction *t = (instruction *)malloc(sizeof(instruction));
 	t->opcode = assign_v;
@@ -1705,6 +1857,8 @@ void generate_RETURN(quad* quad){
 	make_operand(quad->arg2,&t->arg2);
 	emit_instr(t);
 
+	f=Take_Top(func_stack);									//tskir t vala s sxolia gia t seg
+	insertstack(f->returnList,nextinstructionlabel());			//episis
 	//thelei simplirwmma sel 25 diaf 14
 
 	t->opcode = jump_v;
@@ -1715,6 +1869,11 @@ void generate_RETURN(quad* quad){
 }
 
 void generate_FUNCEND(quad* quad){
+	SymbolTableEntry  * f;
+	printf("**** ola kala\n");		
+	f=pop_fromstack(func_stack);								//tskir t vala se sxolia gia t seg
+	if(f->returnList=NULL)		
+		patchlabel(f->returnList->List->val,nextinstructionlabel());
 	//thelei simplirwma sel26 diaf 14
 	quad->taddress = nextinstructionlabel();
 	instruction *t = (instruction *)malloc(sizeof(instruction));
@@ -1723,76 +1882,90 @@ void generate_FUNCEND(quad* quad){
 	emit_instr(t);
 }
 
+
 generator_func_t generators[] = {
+	generate_ASSIGN,
 	generate_ADD,
 	generate_SUB,
 	generate_MUL,
 	generate_DIV,
 	generate_MOD,
+	generate_UMINUS,
+	generate_OR, //lathos
+	generate_OR,
+	generate_NOT,
+	generate_IF_EQ,
+	generate_IF_NOTEQ,
+	generate_IF_LESSEQ,
+	generate_IF_GREATEREQ,
+	generate_IF_LESS,
+	generate_JUMP,
+	generate_IF_GREATER,
+	generate_CALL,
+	generate_PARAM,
+	generate_RETURN,
+	generate_GETRETVAL,
+	generate_FUNCSTART,
+	generate_FUNCEND,
 	generate_NEWTABLE,
 	generate_TABLEGETELEM,
 	generate_TABLESETELEM,
-	generate_ASSIGN,
-	generate_NOP,
-	generate_JUMP,
-	generate_IF_EQ,
-	generate_IF_NOTEQ,
-	generate_IF_GREATER,
-	generate_IF_GREATEREQ,
-	generate_IF_LESS,
-	generate_IF_LESSEQ,
-	generate_NOT,
-	generate_OR,
-	generate_PARAM,
-	generate_CALL,
-	generate_GETRETVAL,
-	generate_FUNCSTART,
-	generate_RETURN,
-	generate_FUNCEND
+	generate_NOP
 };
 
 void generate_all(void){
 	unsigned i;
 	printf("total quads = %d\n",currQuad);
 
-	for(i = 0;i<currQuad;i++){
+	for(i = 0;i<currQuad;++i){
 		(*generators[quads[i].op])(quads+i);
 		currprocessedquad = i;							//to i mas deixnei poio eiani to currentprocessed quad p eimaste
 		//printf("ftanei edw\n");
-	printf("total instructions = %d\n",currinstruction);
-
 	}
-
+		printf("currinstruction = %d\n",currinstruction);
 
 }
 
 void print_tables(void){
 	int i;
+	printf("\033[0;36m");
 	printf("***********CONSTNUMS***********\n");
 	printf("Constnums total = %d\n\n",numSize );
+	printf("\033[0m");
 	for(i=0;i<numSize;i++){
-		printf("%d : %f \n",i,numConsts[i]);
+		printf("\033[0;33m");
+		printf("%d: %15f \n",i,numConsts[i]);
+		printf("\033[0m");
 	}
 	printf("\n");
-
+	printf("\033[0;36m");
 	printf("***********STRINGS***********\n");
 	printf("Strings total = %d\n\n",stringSize );
+	printf("\033[0m");
 	for(i=0;i<stringSize;i++){
-		printf("%d : %s \n",i,stringConsts[i]);
+		printf("\033[0;33m");
+		printf("%d: %15s \n",i,stringConsts[i]);
+		printf("\033[0m");
 	}
 	printf("\n");
-
+	printf("\033[0;36m");
 	printf("***********LIBFUNCS***********\n");
 	printf("Libfuncs total = %d\n\n",namedLibSize );
+	printf("\033[0m");
 	for(i=0;i<namedLibSize;i++){
-		printf("%d : %s \n",i,namedLibfuncs[i]);
+		printf("\033[0;33m");
+		printf("%d: %15s \n",i,namedLibfuncs[i]);
+		printf("\033[0m");
 	}
 	printf("\n");
-
+	printf("\033[0;36m");
 	printf("***********USERFUNCS***********\n");
 	printf("Userfuncs total = %d\n\n",userfuncSize );
+	printf("\033[0m");
 	for(i=0;i<userfuncSize;i++){
-		printf("%d : %s \n",i,userFuncs[i].id);
+		printf("\033[0;33m");
+		printf("%d: %15s \n",i,userFuncs[i].id);
+		printf("\033[0m");
 	}
 	printf("\n");
 }

@@ -318,6 +318,8 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 																
 																temps = newexpr(constbool_e);
 																temps->val.boolConst = 0;
+																temps->sym->offset=$$->sym->offset;	//added by gerorge
+																printf("einai %d\n",$$->sym->offset);
 																emit(assign,temps,NULL,$$,0,yylineno);					//tskir : allagi me to apo panw giati mallon to newexpr_constbool
 																//emit(assign,newexpr_constbool(0),NULL,$$,0,yylineno);		//tskir ->den leitourgei
 																//printf("print %d",temps->val.boolConst);
@@ -325,6 +327,8 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 
 																t = newexpr(constbool_e);
 																t->val.boolConst = 1;
+																t->sym->offset=$$->sym->offset;	//added by gerorge
+																printf("einai %d\n",$$->sym->offset);
 																//emit(assign,newexpr_constbool(1),NULL,$$,0,yylineno); 		//tskir: to allaksa me to apo katw
 																emit(assign,t,NULL,$$,0,yylineno); 
 																printf("expr <- expr op expr\n");
@@ -349,6 +353,8 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 
 															temps = newexpr(constbool_e);
 															temps->val.boolConst = 0;
+															temps->sym->offset=$$->sym->offset;	//added by gerorge
+															printf("einai %d\n",$$->sym->offset);
 															emit(if_greatereq,$1,$3,NULL,nextquad()+3,yylineno);
 															emit(jump,NULL,NULL,NULL,nextquad()+4,yylineno);		//tskir: egw to prosthesa giati den to ekane print
 															
@@ -359,6 +365,8 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 
 															t = newexpr(constbool_e);
 															t->val.boolConst = 1;
+															t->sym->offset=$$->sym->offset;	//added by gerorge
+															printf(" einai %d\n",$$->sym->offset);
 															//emit(assign,newexpr_constbool(1),NULL,$$,0,yylineno); 		//tskir: to allaksa me to apo katw
 
 															emit(assign,t,NULL,$$,0,yylineno);
@@ -383,7 +391,8 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 
 															temps = newexpr(constbool_e);
 															temps->val.boolConst = 0;
-
+															temps->sym->offset=$$->sym->offset;	//added by gerorge
+															printf(" einai %d\n",$$->sym->offset);
 															emit(if_less,$1,$3,NULL,nextquad()+3,yylineno);
 															emit(jump,NULL,NULL,NULL,nextquad()+4,yylineno);		//tskir: egw to prosthesa giati den to ekane print
 
@@ -392,6 +401,8 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 
 															t = newexpr(constbool_e);
 															t->val.boolConst = 1;
+															t->sym->offset=$$->sym->offset;	//added by gerorge
+															printf( "einai %d\n",$$->sym->offset);
 															emit(assign,t,NULL,$$,0,yylineno);						//tskir: allagi 
 															printf("expr <- expr op expr\n");
 
@@ -417,11 +428,15 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 
 															temps = newexpr(constbool_e);
 															temps->val.boolConst = 0;
+															temps->sym->offset=$$->sym->offset;	//added by gerorge
+															printf(" einai %d\n",$$->sym->offset);
 															emit(assign,temps,NULL,$$,0,yylineno);
 															emit(jump,NULL,NULL,NULL,nextquad()+3,yylineno);
 
 															t = newexpr(constbool_e);
 															t->val.boolConst = 1;
+															t->sym->offset=$$->sym->offset;	//added by gerorge
+															printf(" einai %d\n",$$->sym->offset);
 															emit(assign,t,NULL,$$,0,yylineno);
 															printf("expr <- expr op expr\n");
 
@@ -444,7 +459,8 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 
 															temps = newexpr(constbool_e);
 															temps->val.boolConst = 0;
-
+															temps->sym->offset=$$->sym->offset;	//added by gerorge
+															printf(" einai %d\n",$$->sym->offset);
 															emit(if_eq,$1,$3,NULL,nextquad()+3,yylineno);
 															emit(jump,NULL,NULL,NULL,nextquad()+4,yylineno);		//tskir: egw to prosthesa giati den to ekane print
 
@@ -453,6 +469,8 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 															
 															t = newexpr(constbool_e);
 															t->val.boolConst = 1;
+															t->sym->offset=$$->sym->offset;	//added by gerorge
+															printf(" einai %d\n",$$->sym->offset);
 															emit(assign,t,NULL,$$,0,yylineno);
 															printf("expr <- expr op expr\n");
 
@@ -475,14 +493,17 @@ expr			:	assignexpr						{$$=$1;	printf("expr <- assignexpr\n");}
 
 															temps = newexpr(constbool_e);
 															temps->val.boolConst = 0;
-
+															temps->sym->offset=$$->sym->offset;	//added by gerorge
+															printf("%d\n",$$->sym->offset);
 															emit(if_noteq,$1,$3,NULL,nextquad()+3,yylineno);
 															emit(jump,NULL,NULL,NULL,nextquad()+4,yylineno);		//tskir: egw to prosthesa giati den to ekane print
-
+															
 															emit(assign,temps,NULL,$$,0,yylineno);
 															emit(jump,NULL,NULL,NULL,nextquad()+3,yylineno);
 															t = newexpr(constbool_e);
 															t->val.boolConst = 1;
+															t->sym->offset=$$->sym->offset;	//added by gerorge
+															printf(" einai %d\n",$$->sym->offset);
 															emit(assign,t,NULL,$$,0,yylineno);
 															printf("expr <- expr op expr\n");
 
@@ -553,9 +574,12 @@ term			: 	LEFT_PAR expr RIGHT_PAR			{
 														
 														temps = newexpr(constbool_e);
 														temps->val.boolConst = 0;
+														temps->sym->offset=$$->sym->offset;	//added by gerorge
+														printf(" einai %d\n",$$->sym->offset);
 														t = newexpr(constbool_e);								//tskir added
 														t->val.boolConst = 1;
-
+														t->sym->offset=$$->sym->offset;	//added by gerorge
+														printf(" einai %d\n",$$->sym->offset);
 														emit(if_eq,$2,temps,NULL,nextquad()+5,yylineno);		//tskir added 
 														emit(jump,NULL,NULL,NULL,nextquad()+2,yylineno);		//tskir: egw to prosthesa giati den to ekane print
 
@@ -587,6 +611,8 @@ term			: 	LEFT_PAR expr RIGHT_PAR			{
 																	temps = newexpr(constnum_e);
 																	temps->sym = newtemp(Symtbl,scope,yylineno);
 																	temps->x = 1;
+																	temps->sym->offset=$$->sym->offset;	//added by gerorge
+																	printf(" einai %d\n",$$->sym->offset);
 																	emit(add,$2,newexpr_constnum(1),temps,0,yylineno);
 																	emit(assign,$2,NULL,temps,0,yylineno);
 																}
@@ -609,6 +635,8 @@ term			: 	LEFT_PAR expr RIGHT_PAR			{
 														if(check_arith($1)==0){
 															temps = newexpr(var_e);
 															temps->sym = newtemp(Symtbl,scope,yylineno);
+															temps->sym->offset=$$->sym->offset;	//added by gerorge
+															printf(" einai %d\n",$$->sym->offset);
 															if($1->type == tableitem_e){
 																val = emit_iftableitem(Symtbl,scope,$1,yylineno);
 																emit(assign,val,NULL,temps,0,yylineno);
@@ -645,6 +673,8 @@ term			: 	LEFT_PAR expr RIGHT_PAR			{
 																	temps = newexpr(constnum_e);
 																	temps->sym = newtemp(Symtbl,scope,yylineno);
 																	temps->x = 1;
+																	temps->sym->offset=$$->sym->offset;	//added by gerorge
+																	printf(" einai %d\n",$$->sym->offset);
 																	emit(sub,$2,newexpr_constnum(1),temps,0,yylineno);
 																	emit(assign,$2,NULL,temps,0,yylineno);
 																}
@@ -666,6 +696,8 @@ term			: 	LEFT_PAR expr RIGHT_PAR			{
 														if(check_arith($1)==0){
 															temps = newexpr(var_e);
 															temps->sym = newtemp(Symtbl,scope,yylineno);
+															temps->sym->offset=$$->sym->offset;	//added by gerorge
+															printf(" einai %d\n",$$->sym->offset);
 															if($1->type == tableitem_e){
 																val = emit_iftableitem(Symtbl,scope,$1,yylineno);
 																emit(assign,val,NULL,temps,0,yylineno);
@@ -707,11 +739,15 @@ assignexpr		:	lvalue 	ASSIGN expr
 																	emit(tablesetelem,$1->index,$3,$1,0,yylineno);
 																	temps = emit_iftableitem(Symtbl,scope,$1,yylineno);
 																	temps->type = assignexpr_e;
+																	temps->sym->offset=$$->sym->offset;	//added by gerorge
+																	printf(" einai %d\n",$$->sym->offset);
 																}else{
 																//printf("mpaineiedcvw\n");
 																	emit(assign,$3,NULL,$1,0,yylineno);
 																	temps = newexpr(assignexpr_e);
 																	temps->sym =newtemp(Symtbl,scope,yylineno);
+																	temps->sym->offset=$$->sym->offset;	//added by gerorge
+																	printf(" einai %d\n",$$->sym->offset);
 																	emit(assign,$1,NULL,temps,0,yylineno);
 																}
 																$$=temps;
@@ -1166,7 +1202,7 @@ funcprefix 		:	FUNCTION funcname
 												$$ = look_up_inscope_noprint($2,scope);
 												$$->value.funcVal->iaddress = nextquad();
 												emit(jump,NULL,NULL,NULL,0,yylineno);						//tskir : added gia na kanei print to jump prin to funcstart
-												emit(funcstart,lvalue_expr($$),NULL,NULL,0,yylineno);
+												emit(funcstart,NULL,NULL,lvalue_expr($$),0,yylineno);
 												push(scopeoffsetStack,currscopeoffset());
 												enterscopespace();
 												resetformalargsoffset();
@@ -1204,7 +1240,7 @@ funcdef			: 	funcprefix funcargs funcbody
 												int offset = pop(scopeoffsetStack);
 												restorecurrscopeoffset(offset);
 												$$ = $funcprefix;										//the function def returns the symbol
-												emit(funcend,lvalue_expr($1) ,NULL,NULL,0,yylineno);	//lvalue expr to convert the symtable * to expr*
+												emit(funcend,NULL,NULL,lvalue_expr($1),0,yylineno);	//lvalue expr to convert the symtable * to expr*
 
 											}
 				;
@@ -1534,12 +1570,9 @@ int main(int argc, char **argv) {
 			printSymtable();
 			printquads();
 			generate_all();
-			print_num();
-			print_strings();
-			print_libfuncs();
-			print_userfuncs();
-			//printInstr();
+			print_tables();
+			print_instructions();
 			//printtables();
-			//avmbinaryfile();
+			avmbinaryfile();
 		return 0;
 }
